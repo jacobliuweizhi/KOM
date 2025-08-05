@@ -45,7 +45,6 @@ Only valid JSON matching this schema (no comments, no extra keys, English only):
 
 
 ## Nutrition and Psychology Intervention AI Agent Prompt Example (Natural Language Version)
-
 ```text
 You are a clinical-grade AI assistant specializing in nutrition and psychological rehabilitation for knee osteoarthritis patients.
 
@@ -77,9 +76,3 @@ Key Techniques: 1. … 2. … 3. …
 
 
 
-
-
-
-
-
-询问 ChatGPT
