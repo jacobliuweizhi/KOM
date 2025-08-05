@@ -1,0 +1,250 @@
+import os
+import traceback
+from datetime import datetime
+
+import joblib
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.utils import resample
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score,
+    f1_score, roc_auc_score, roc_curve, auc,
+    confusion_matrix
+)
+from sklearn.ensemble import (
+    RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
+)
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier, early_stopping, log_evaluation
+
+# 1. Plot style
+
+def set_default_style():
+    plt.style.use('classic')
+    plt.rcParams.update({
+        'figure.dpi': 300,
+        'savefig.dpi': 300,
+        'font.family': 'sans-serif',
+        'font.sans-serif': ['Arial'],
+        'font.size': 12,
+        'axes.edgecolor': 'black',
+        'axes.linewidth': 1,
+        'axes.labelsize': 14,
+        'axes.titlesize': 16,
+        'lines.linewidth': 2,
+        'lines.markersize': 6,
+        'xtick.direction': 'out',
+        'ytick.direction': 'out',
+        'legend.frameon': False,
+        'legend.fontsize': 12,
+    })
+
+set_default_style()
+
+# 2. Data preprocessing
+
+class DataPreprocessor:
+    def __init__(self):
+        self.encoders = {}
+        self.scaler = StandardScaler()
+
+    def drop_na(self, X, y=None):
+        if y is None:
+            cleaned = X.dropna()
+            return cleaned
+        df = pd.concat([X, y], axis=1).dropna()
+        return df.iloc[:, :-1], df.iloc[:, -1]
+
+    def balance(self, X, y, n_per_class=1000):
+        dfs = []
+        for cls in np.unique(y):
+            Xc = X[y == cls]
+            yc = y[y == cls]
+            n = min(len(yc), n_per_class)
+            Xs, ys = resample(Xc, yc, replace=(len(yc)<n_per_class), n_samples=n, random_state=0)
+            dfs.append(pd.concat([Xs, ys.reset_index(drop=True)], axis=1))
+        balanced = pd.concat(dfs, axis=0)
+        return balanced.iloc[:, :-1], balanced.iloc[:, -1]
+
+    def transform(self, df, categorical, continuous, fit=True):
+        out = df.copy()
+        for feat in categorical:
+            if fit:
+                le = LabelEncoder()
+                out[feat] = le.fit_transform(out[feat].astype(str))
+                self.encoders[feat] = le
+            else:
+                le = self.encoders.get(feat)
+                out[feat] = le.transform(out[feat].astype(str).map(lambda x: x if x in le.classes_ else le.classes_[0]))
+        if continuous:
+            if fit:
+                self.scaler.fit(out[continuous])
+            out[continuous] = self.scaler.transform(out[continuous])
+        return out
+
+# 3. Plotting utilities
+
+def plot_conf_matrix(cm, labels, name, out_dir, cmaps=None):
+    normed = cm.astype(float) / cm.sum(axis=1, keepdims=True)
+    os.makedirs(out_dir, exist_ok=True)
+    cmaps = cmaps or ['Blues']
+    for cmap in cmaps:
+        fig, ax = plt.subplots()
+        im = ax.imshow(normed, cmap=cmap)
+        for i in range(normed.shape[0]):
+            for j in range(normed.shape[1]):
+                ax.text(j, i, f"{normed[i,j]:.2f}", ha='center')
+        ax.set_xticks(range(len(labels)))
+        ax.set_yticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=45)
+        ax.set_yticklabels(labels)
+        plt.title(f"{name} CM({cmap})")
+        path = os.path.join(out_dir, f"{name}_cm_{cmap}.png")
+        plt.savefig(path)
+        plt.close(fig)
+
+
+def plot_roc(model, X, y, name, out_dir):
+    prob = model.predict_proba(X)
+    classes = np.unique(y)
+    fig, ax = plt.subplots()
+    for i, cls in enumerate(classes):
+        bin_y = (y == cls).astype(int)
+        fpr, tpr, _ = roc_curve(bin_y, prob[:, i])
+        ax.plot(fpr, tpr, label=f"{cls} ({auc(fpr,tpr):.2f})")
+    ax.plot([0,1],[0,1],'--')
+    plt.title(f"{name} ROC")
+    os.makedirs(out_dir, exist_ok=True)
+    plt.savefig(os.path.join(out_dir, f"{name}_roc.png"))
+    plt.close(fig)
+
+# 4. Aggregated results
+
+def save_results(results, out_dir):
+    df = pd.DataFrame(results)
+    os.makedirs(out_dir, exist_ok=True)
+    csv_path = os.path.join(out_dir, 'summary.csv')
+    df.to_csv(csv_path, index=False)
+    for metric in ['Accuracy', 'Precision', 'Recall', 'F1', 'AUC']:
+        fig, ax = plt.subplots()
+        ax.bar(df['Model'] + '_' + df['Target'], df[metric])
+        plt.xticks(rotation=45)
+        plt.title(metric)
+        plt.savefig(os.path.join(out_dir, f"{metric.lower()}_comp.png"))
+        plt.close(fig)
+
+# 5. Model configurations
+
+def get_configs():
+    return {
+        'xgb': {'n_estimators':100, 'max_depth':5, 'learning_rate':0.1, 'random_state':0},
+        'lgb': {'n_estimators':100, 'num_leaves':31, 'learning_rate':0.1, 'random_state':0},
+        'rf':  {'n_estimators':100, 'max_depth':10, 'random_state':0},
+        'gb':  {'n_estimators':100, 'max_depth':5, 'random_state':0},
+        'ada': {'n_estimators':100, 'learning_rate':0.1, 'random_state':0},
+        'svc': {'kernel':'rbf', 'probability':True},
+        'knn': {'n_neighbors':5},
+        'mlp': {'hidden_layer_sizes':(100,), 'max_iter':500, 'random_state':0}
+    }
+
+# 6. Evaluation loop
+
+def evaluate(model, X, y, name, out_dir, iters=50):
+    try:
+        acc=prec=rec=f1=roc_auc=0
+        cm_sum = np.zeros((len(np.unique(y)),)*2)
+        for _ in range(iters):
+            idx = np.random.choice(len(y), size=min(200,len(y)), replace=False)
+            Xt, yt = X.iloc[idx], y.iloc[idx]
+            pred = model.predict(Xt)
+            prob = model.predict_proba(Xt)
+            acc += accuracy_score(yt,pred)
+            prec += precision_score(yt,pred,average='weighted', zero_division=0)
+            rec += recall_score(yt,pred,average='weighted', zero_division=0)
+            f1 += f1_score(yt,pred,average='weighted', zero_division=0)
+            roc_auc += roc_auc_score(yt, prob, multi_class='ovr')
+            cm_sum += confusion_matrix(yt,pred)
+        n=iters
+        metrics = {
+            'Accuracy':acc/n,
+            'Precision':prec/n,
+            'Recall':rec/n,
+            'F1':f1/n,
+            'AUC':roc_auc/n
+        }
+        pd.DataFrame([metrics]).to_csv(os.path.join(out_dir,f"{name}_metrics.csv"), index=False)
+        plot_conf_matrix(cm_sum, np.unique(y), name, os.path.join(out_dir,'cms'))
+        return metrics
+    except Exception:
+        traceback.print_exc()
+        return {}
+
+# 7. Main workflow
+
+def main():
+    data_path = os.getenv('DATA_PATH', '/path/to/data.csv')
+    df = pd.read_csv(data_path)
+
+    # placeholder lists
+    categorical = []  # fill in categorical column names
+    continuous = []   # fill in continuous column names
+    targets = []      # fill in target column names
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    base_dir = os.getenv('RESULTS_DIR', f'output_{timestamp}')
+    os.makedirs(base_dir, exist_ok=True)
+
+    configs = get_configs()
+    models = {
+        'xgb': XGBClassifier(**configs['xgb']),
+        'lgb': LGBMClassifier(**configs['lgb']),
+        'rf':  RandomForestClassifier(**configs['rf']),
+        'gb':  GradientBoostingClassifier(**configs['gb']),
+        'ada': AdaBoostClassifier(**configs['ada']),
+        'svc': SVC(**configs['svc']),
+        'knn': KNeighborsClassifier(**configs['knn']),
+        'mlp': MLPClassifier(**configs['mlp']),
+    }
+
+    pre = DataPreprocessor()
+    all_results = []
+
+    for target in targets:
+        out_dir = os.path.join(base_dir, target)
+        os.makedirs(out_dir, exist_ok=True)
+        X = df[categorical + continuous].copy()
+        y = df[target].copy()
+        X, y = pre.drop_na(X, y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y, random_state=0)
+        X_train = pre.transform(X_train, categorical, continuous, fit=True)
+        X_test  = pre.transform(X_test,  categorical, continuous, fit=False)
+        Xb, yb = pre.balance(X_train, y_train)
+
+        for name, model in models.items():
+            try:
+                if hasattr(model, 'fit'):  # tree-based with eval
+                    if name in ['xgb', 'lgb']:
+                        model.fit(Xb, yb, eval_set=[(Xb,yb),(X_test,y_test)], verbose=False,
+                                  callbacks=[early_stopping(stopping_rounds=10), log_evaluation(period=0)] if name=='lgb' else None)
+                    else:
+                        model.fit(Xb, yb)
+                joblib.dump(model, os.path.join(out_dir, f"{name}.joblib"))
+                metrics = evaluate(model, X_test, y_test, name, out_dir)
+                if metrics:
+                    metrics.update({'Model':name, 'Target':target})
+                    all_results.append(metrics)
+                plot_roc(model, X_test, y_test, name, out_dir)
+            except Exception:
+                traceback.print_exc()
+
+    if all_results:
+        save_results(all_results, base_dir)
+
+if __name__ == '__main__':
+    main()
