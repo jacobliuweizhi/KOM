@@ -38,9 +38,6 @@ Example Schema
   "Week 5-8": { … },
   "Week 9-12": { … }
 }
-yaml
-复制
-编辑
 
 ## Exercise Prescription AI Agent Prompt Example (Natural Language Version)
 
@@ -59,12 +56,3 @@ Generate a 12-week individualized exercise prescription divided into three phase
 
 Output Style  
 Respond in clear, structured English using full sentences. Do not use JSON, bullet lists, or line breaks within paragraphs. Each phase should appear as a self-contained narrative description.
-
-
-
-
-
-
-
-
-询问 ChatGPT
