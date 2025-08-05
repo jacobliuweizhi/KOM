@@ -1,0 +1,160 @@
+import os
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+from sklearn.model_selection import KFold, train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, permutation_importance
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.svm import SVR
+from sklearn.linear_model import ElasticNet
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+import joblib
+
+class RegressionPipeline:
+    def __init__(self, cfg, output_dir=None):
+        self.cfg = cfg
+        self.results = []
+        self.best_models = {}
+        self.importances = pd.DataFrame()
+        self.preds = {}
+        # Plot style
+        self._set_style()
+        # Output directories
+        self.out_root = output_dir or self._make_dir('regression_outputs')
+        for sub in ['plots', 'models', 'logs', 'results']:
+            os.makedirs(os.path.join(self.out_root, sub), exist_ok=True)
+        self.plots_dir = os.path.join(self.out_root, 'plots')
+        self.models_dir = os.path.join(self.out_root, 'models')
+        self.logs_dir = os.path.join(self.out_root, 'logs')
+        self.results_dir = os.path.join(self.out_root, 'results')
+
+    def _set_style(self):
+        sns.set(style='whitegrid')
+        plt.rcParams.update({
+            'figure.dpi': 300,
+            'savefig.dpi': 300,
+            'font.family': 'sans-serif',
+            'font.size': 10,
+        })
+
+    def _make_dir(self, base):
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        path = os.path.join(base, ts)
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def load_and_clean(self):
+        # Load data and drop missing
+        df = pd.read_csv(self.cfg['data_path'])
+        cols = self.cfg['features'] + self.cfg['targets']
+        return df.dropna(subset=cols)
+
+    def preprocess(self, df):
+        # Encode categoricals and scale continuous
+        if 'categorical' in self.cfg:
+            for c in self.cfg['categorical']:
+                df[c] = pd.Categorical(df[c]).codes
+        scaler = StandardScaler()
+        cont = self.cfg.get('continuous', [])
+        if cont:
+            df[cont] = scaler.fit_transform(df[cont])
+        return df
+
+    def _get_models(self):
+        base = {'learning_rate':0.01, 'random_state':0}
+        return {
+            'xgb': XGBRegressor(n_estimators=500, **base),
+            'lgb': LGBMRegressor(n_estimators=500, **base),
+            'rf':  RandomForestRegressor(n_estimators=100, random_state=0),
+            'gb':  GradientBoostingRegressor(n_estimators=100, random_state=0),
+            'svr': SVR(kernel='rbf', C=1.0, epsilon=0.1),
+            'en':  ElasticNet(alpha=0.1, l1_ratio=0.5, random_state=0)
+        }
+
+    def train_validate(self, name, model, X, y):
+        kf = KFold(n_splits=self.cfg.get('n_splits',5), shuffle=True, random_state=0)
+        metrics_list = []
+        all_pred, all_true = [], []
+        for fold, (tr, va) in enumerate(kf.split(X),1):
+            Xt, Xv = X.iloc[tr], X.iloc[va]
+            yt, yv = y.iloc[tr], y.iloc[va]
+            # Scale inside fold
+            sc = StandardScaler()
+            Xt_s = pd.DataFrame(sc.fit_transform(Xt), columns=X.columns)
+            Xv_s = pd.DataFrame(sc.transform(Xv), columns=X.columns)
+            model.fit(Xt_s, yt)
+            pred = model.predict(Xv_s)
+            all_pred.extend(pred)
+            all_true.extend(yv)
+            metrics_list.append({
+                'model': name, 'target': y.name, 'fold': fold,
+                'r2': r2_score(yv, pred),
+                'mse': mean_squared_error(yv, pred),
+                'mae': mean_absolute_error(yv, pred),
+                'pearson': stats.pearsonr(yv, pred)[0]
+            })
+        # Save log
+        pd.DataFrame(metrics_list).to_csv(
+            os.path.join(self.logs_dir, f"log_{name}_{y.name}.csv"), index=False)
+        # Track best model by mean R2
+        avg_r2 = np.mean([m['r2'] for m in metrics_list])
+        if (y.name not in self.best_models) or (avg_r2 > self.best_models[y.name][0]):
+            self.best_models[y.name] = (avg_r2, model)
+        # Save predictions
+        self.preds[f"{name}_{y.name}"] = {'true': all_true, 'pred': all_pred}
+        # Feature importance
+        self._save_importances(model, X, y.name, name)
+        return metrics_list
+
+    def _save_importances(self, model, X, target, name):
+        try:
+            if hasattr(model, 'feature_importances_'):
+                imp = model.feature_importances_
+            else:
+                res = permutation_importance(model, X, self.preds[f"{name}_{target}"]['true'], n_repeats=5)
+                imp = res.importances_mean
+            df_imp = pd.DataFrame({'feature':X.columns, 'importance':imp})
+            df_imp.to_csv(os.path.join(self.results_dir, f"imp_{name}_{target}.csv"), index=False)
+            self.importances = pd.concat([self.importances, df_imp], ignore_index=True)
+        except Exception:
+            pass
+
+    def run(self):
+        df = self.load_and_clean()
+        df = self.preprocess(df)
+        features = self.cfg['features']
+        models = self._get_models()
+        for tgt in self.cfg['targets']:
+            X = df[features]
+            y = df[tgt]
+            for name, mdl in models.items():
+                metrics = self.train_validate(name, mdl, X, y)
+                self.results.extend(metrics)
+        # Save overall results
+        pd.DataFrame(self.results).to_csv(
+            os.path.join(self.results_dir, 'results_summary.csv'), index=False)
+        # Save best models
+        for tgt, (score, mdl) in self.best_models.items():
+            joblib.dump(mdl, os.path.join(self.models_dir, f"best_{tgt}.pkl"))
+        # Generate plots (scatter, residuals, comparisons)
+        # ... placeholder for plot functions
+        print("Pipeline completed.")
+
+if __name__ == '__main__':
+    config = {
+        'data_path': os.getenv('DATA_PATH', '/path/to/data.csv'),
+        'features': [],          # fill list of feature names
+        'categorical': [],       # optional list
+        'continuous': [],        # optional list
+        'targets': [],           # list of target columns
+        'n_splits': 5,
+    }
+    out_dir = os.getenv('OUTPUT_DIR', None)
+    pipe = RegressionPipeline(config, output_dir=out_dir)
+    pipe.run()
