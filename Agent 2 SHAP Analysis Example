@@ -1,0 +1,113 @@
+from pathlib import Path
+import pickle
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import shap
+from sklearn.preprocessing import StandardScaler
+
+# --- Configuration ---
+CONFIG = {
+    'data_file': Path('/project/data/raw/dataset.csv'),
+    'model_file': Path('/project/models/lightgbm_shap.pkl'),
+    'output_dir': Path('/project/results/shap_plots'),
+    'categorical': [
+        'V00XRKL_Left','V00XRKL_Right','V00XRJSL_Left','V00XRJSM_Left',
+        'V00XROSFL_Left','V00XROSFM_Left','V00XROSTL_Left','V00XROSTM_Left',
+        'V00XRJSL_Right','V00XRJSM_Right','V00XROSFL_Right','V00XROSFM_Right',
+        'V00XROSTL_Right','V00XROSTM_Right','V00XRSCFL_Right'
+    ],
+    'continuous': [
+        'V00AGE','P01BMI','P01WEIGHT','V00rfmaxf','V00remaxf','V00lfmaxf','V00lemaxf',
+        'V00KOOSKPR','V00KOOSYMR','V00KOOSKPL','V00KOOSYML','V00KOOSFSR','V00KOOSQOL',
+        'V00rfmaxf_norm_BMI','V00remaxf_norm_BMI','V00lfmaxf_norm_BMI','V00lemaxf_norm_BMI'
+    ],
+    'colors': {
+        'blue': [0, 160, 135],
+        'red': [230, 75, 53],
+        'palette': ['#E64B35','#4DBBD5','#00A087','#3C5488','#F39B7F','#8491B4','#91D1C2','#DC0000']
+    }
+}
+
+# --- Plot settings ---
+plt.rcParams.update({
+    'font.family': 'Arial',
+    'axes.linewidth': 1.5,
+    'axes.labelsize': 12,
+    'xtick.labelsize': 10,
+    'ytick.labelsize': 10
+})
+
+# Initialize directories and SHAP color overrides
+CONFIG['output_dir'].mkdir(parents=True, exist_ok=True)
+shap.plots.colors.blue_rgb = np.array(CONFIG['colors']['blue']) / 255.0
+shap.plots.colors.red_rgb = np.array(CONFIG['colors']['red']) / 255.0
+
+# --- Utility functions ---
+def load_data(path, cont_feats):
+    df = pd.read_csv(path).dropna(subset=cont_feats)
+    scaler = StandardScaler().fit(df[cont_feats])
+    return df, scaler
+
+
+def build_sample(scaler, cont_feats, cat_feats):
+    # define one patient record
+    values = {feat: 1 for feat in cat_feats}  # example all 1s
+    values.update({feat: 0.5 for feat in cont_feats})
+    sample = pd.DataFrame(values, index=[0])
+    sample[cont_feats] = scaler.transform(sample[cont_feats])
+    return sample
+
+
+def save_fig(fig, filename, dpi=600):
+    fig.savefig(filename, dpi=dpi, bbox_inches='tight', facecolor='white')
+    plt.close(fig)
+
+
+# --- Main workflow ---
+if __name__ == '__main__':
+    # load
+    df, scaler = load_data(CONFIG['data_file'], CONFIG['continuous'])
+    sample = build_sample(scaler, CONFIG['continuous'], CONFIG['categorical'])
+    with open(CONFIG['model_file'], 'rb') as f:
+        model = pickle.load(f)
+
+    # explain
+    explainer = shap.TreeExplainer(model)
+    shap_vals = explainer.shap_values(sample)
+    shap.initjs()
+    exp = shap.Explanation(
+        values=shap_vals[0],
+        base_values=explainer.expected_value,
+        data=sample.iloc[0],
+        feature_names=sample.columns.tolist()
+    )
+
+    # plot definitions
+    tasks = [
+        ('force_html', lambda: shap.force_plot(explainer.expected_value, shap_vals, sample)),
+        ('force_png',  lambda: shap.plots.force(exp, figsize=(10,3))),
+        ('waterfall',  lambda: shap.plots.waterfall(exp, max_display=8)),
+        ('decision',   lambda: shap.plots.decision(explainer.expected_value, shap_vals, sample, feature_display_range=slice(-1,-9,-1))),
+        ('bar',        lambda: shap.plots.bar(exp, max_display=8)),
+        ('beeswarm',   lambda: shap.plots.beeswarm(shap_vals, sample, max_display=8)),
+        ('summary',    lambda: shap.plots.bar(exp, max_display=8, color=CONFIG['colors']['palette'][0]))
+    ]
+
+    # generate & save
+    for name, plot_fn in tasks:
+        out = CONFIG['output_dir'] / f'shap_{name}.png'
+        if name == 'force_html':
+            shap.save_html(str(CONFIG['output_dir'] / 'shap_force.html'), plot_fn())
+        else:
+            fig = plot_fn()
+            save_fig(fig, out)
+
+    # dependence plots for top features
+    importances = np.abs(shap_vals).mean(0)
+    top_feats = pd.Series(importances, index=sample.columns).nlargest(8).index.tolist()
+    for feat in top_feats:
+        fig = shap.dependence_plot(feat, shap_vals, sample, show=False)
+        save_fig(fig, CONFIG['output_dir'] / f'shap_dependence_{feat}.png')
+
+    print('All SHAP plots generated successfully!')
