@@ -1,17 +1,58 @@
 # KOM
-Knee Osteoarthritis Management
-KOA Precision Management Multi-Agent System
-KOA affects ~600M people globally, causing progressive pain and functional deterioration often leading to knee replacement. While timely personalized intervention is crucial, delivering multidisciplinary KOA management at scale exceeds current healthcare capacity.
 
-Recent AI advances have created opportunities for precise KOA management through automated imaging analysis, risk prediction, and treatment planning. However, existing studies typically address isolated treatment stages rather than supporting the complete clinical pathway, and comprehensive implementation remains resource-intensive.
+**Knee Osteoarthritis Management**  
+*KOA Precision Management Multi-Agent System*
 
-Building on our previous work in structured prompt engineering for LLMs in osteoarthritis care, RAG-enhanced guideline-compliant treatment recommendations, and multi-agent MDT simulation, we present KOM - the first end-to-end multi-agent system for KOA precision management that automates the entire evaluation and treatment process.
+---
 
-System Components
-KOM integrates LLMs, ResNet architecture, and ML algorithms through three specialized agents:
+## 🔍 Background
 
-Assessment Agent: Processes multimodal data, engages with patients, analyzes radiological images, and produces comprehensive evaluation reports.
+KOA affects approximately 600 million people worldwide, causing progressive pain and functional decline that often leads to knee replacement. While personalized, timely intervention is critical, scaling multidisciplinary KOA management exceeds the capacity of current healthcare systems.
 
-Risk Agent: Forecasts individual KOA progression risk, identifies specific high-risk factors, and generates detailed risk assessment reports.
+---
 
-Treatment Multi-Agent Cluster: Simulates MDT discussions using agents with independent evidence-based medical databases to craft personalized management plans based on patient assessments and risk reports.
+## 🚀 Opportunities
+
+Recent advances in AI enable:  
+- **Automated imaging analysis**  
+- **Risk prediction**  
+- **Precision treatment planning**  
+
+However, most studies focus on isolated stages of care rather than supporting the full clinical pathway, and end-to-end implementation remains resource-intensive.
+
+---
+
+## 🌟 Introduction
+
+Building on our prior work in osteoarthritis care:  
+1. Structured prompt engineering for LLMs  
+2. RAG-enhanced, guideline-compliant treatment recommendations  
+3. Multi-agent MDT (multidisciplinary team) simulation  
+
+We introduce **KOM**:  
+> **The first end-to-end multi-agent system for KOA precision management, automating the entire evaluation and treatment process.**
+
+---
+
+## 🏗️ System Components
+
+KOM integrates LLMs, ResNet architectures, and machine learning algorithms via three specialized agents:
+
+1. **Assessment Agent**  
+   - Processes multimodal data  
+   - Interacts with patients  
+   - Analyzes radiological images  
+   - Generates comprehensive evaluation reports  
+
+2. **Risk Agent**  
+   - Forecasts individual KOA progression risk  
+   - Identifies specific high-risk factors  
+   - Produces detailed risk assessment reports  
+
+3. **Treatment Multi-Agent Cluster**  
+   - Simulates MDT discussions using agents backed by independent evidence-based medical databases  
+   - Crafts personalized management plans based on assessment and risk reports  
+
+---
+
+> Please see the full documentation for instructions on getting started and deploying the KOM system.  
