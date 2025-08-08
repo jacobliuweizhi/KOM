@@ -1,61 +1,66 @@
-KOM
-Knee Osteoarthritis Management
-Comprehensive KOA Precision Care System
+# KOM
 
-🔍 Background
-Knee osteoarthritis (KOA) affects an estimated 600 million people worldwide, leading to chronic pain, progressive functional decline, and, in severe cases, the need for knee replacement surgery. Early and individualized intervention is critical to slow disease progression, yet scaling multidisciplinary KOA care remains constrained by healthcare capacity and coordination challenges.
+**Knee Osteoarthritis Management**  
+*Comprehensive KOA Precision Care System*
 
-🚀 Opportunities
+---
+
+## 🔍 Background
+
+Knee osteoarthritis (KOA) affects an estimated 600 million people worldwide, leading to chronic pain, progressive functional decline, and, in severe cases, the need for knee replacement surgery. 
+
+Early and individualized intervention is critical to slow disease progression, yet scaling multidisciplinary KOA care remains constrained by healthcare capacity and coordination challenges.
+
+---
+
+## 🚀 Opportunities
+
 Recent advances in medical technology enable:
 
-Automated imaging interpretation
+- **Automated imaging interpretation**
+- **Individualized risk prediction**
+- **Tailored treatment planning**
 
-Individualized risk prediction
+However, most existing solutions address only isolated stages of care.  
+A fully integrated approach that supports the complete clinical pathway is still rare,  
+and end-to-end implementation continues to require substantial resources.
 
-Tailored treatment planning
+---
 
-However, most existing solutions address only isolated stages of care. A fully integrated approach that supports the complete clinical pathway is still rare, and end-to-end implementation continues to require substantial resources.
+## 🌟 System Overview
 
-🌟 System Overview
 Building on prior clinical research and practice in osteoarthritis management, we have developed capabilities including:
 
-Structured clinical data processing and task coordination
+1. Structured clinical data processing and task coordination
+2. Guideline-compliant treatment recommendation generation
+3. Simulated multidisciplinary team (MDT) collaboration
 
-Guideline-compliant treatment recommendation generation
+These are combined in **KOM**:
 
-Simulated multidisciplinary team (MDT) collaboration
+> **The first system to deliver end-to-end KOA precision management — from comprehensive evaluation to personalized treatment planning — with standardized, streamlined processes.**
 
-These are combined in KOM:
+---
 
-The first system to deliver end-to-end KOA precision management — from comprehensive evaluation to personalized treatment planning — with standardized, streamlined processes.
+## 🏗️ System Components
 
-🏗️ System Components
 KOM consists of three core modules working in coordination through advanced analytical models and rule-based decision engines:
 
-Assessment Module
+### 1. Assessment Module
+- Processes multimodal patient data
+- Conducts structured patient interactions
+- Analyzes radiological images
+- Generates complete clinical evaluation reports
 
-Processes multimodal patient data
+### 2. Risk Prediction Module
+- Estimates individual disease progression risk
+- Identifies patient-specific risk factors
+- Produces detailed risk assessment results
 
-Conducts structured patient interactions
+### 3. Treatment Planning Module
+- Simulates MDT discussions
+- Utilizes independent, evidence-based medical knowledge bases
+- Develops individualized management plans based on assessment and risk results
 
-Analyzes radiological images
+---
 
-Generates complete clinical evaluation reports
-
-Risk Prediction Module
-
-Estimates individual disease progression risk
-
-Identifies patient-specific risk factors
-
-Produces detailed risk assessment results
-
-Treatment Planning Module
-
-Simulates MDT discussions
-
-Utilizes independent, evidence-based medical knowledge bases
-
-Develops individualized management plans based on assessment and risk results
-
-For detailed deployment and user instructions, please refer to the full system documentation.
+> For detailed deployment and user instructions, please refer to the full system documentation.
