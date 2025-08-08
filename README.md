@@ -1,58 +1,61 @@
-# KOM
+KOM
+Knee Osteoarthritis Management
+Comprehensive KOA Precision Care System
 
-**Knee Osteoarthritis Management**  
-*KOA Precision Management Multi-Agent System*
+🔍 Background
+Knee osteoarthritis (KOA) affects an estimated 600 million people worldwide, leading to chronic pain, progressive functional decline, and, in severe cases, the need for knee replacement surgery. Early and individualized intervention is critical to slow disease progression, yet scaling multidisciplinary KOA care remains constrained by healthcare capacity and coordination challenges.
 
----
+🚀 Opportunities
+Recent advances in medical technology enable:
 
-## 🔍 Background
+Automated imaging interpretation
 
-KOA affects approximately 600 million people worldwide, causing progressive pain and functional decline that often leads to knee replacement. While personalized, timely intervention is critical, scaling multidisciplinary KOA management exceeds the capacity of current healthcare systems.
+Individualized risk prediction
 
----
+Tailored treatment planning
 
-## 🚀 Opportunities
+However, most existing solutions address only isolated stages of care. A fully integrated approach that supports the complete clinical pathway is still rare, and end-to-end implementation continues to require substantial resources.
 
-Recent advances in AI enable:  
-- **Automated imaging analysis**  
-- **Risk prediction**  
-- **Precision treatment planning**  
+🌟 System Overview
+Building on prior clinical research and practice in osteoarthritis management, we have developed capabilities including:
 
-However, most studies focus on isolated stages of care rather than supporting the full clinical pathway, and end-to-end implementation remains resource-intensive.
+Structured clinical data processing and task coordination
 
----
+Guideline-compliant treatment recommendation generation
 
-## 🌟 Introduction
+Simulated multidisciplinary team (MDT) collaboration
 
-Building on our prior work in osteoarthritis care:  
-1. Structured prompt engineering for LLMs  
-2. RAG-enhanced, guideline-compliant treatment recommendations  
-3. Multi-agent MDT (multidisciplinary team) simulation  
+These are combined in KOM:
 
-We introduce **KOM**:  
-> **The first end-to-end multi-agent system for KOA precision management, automating the entire evaluation and treatment process.**
+The first system to deliver end-to-end KOA precision management — from comprehensive evaluation to personalized treatment planning — with standardized, streamlined processes.
 
----
+🏗️ System Components
+KOM consists of three core modules working in coordination through advanced analytical models and rule-based decision engines:
 
-## 🏗️ System Components
+Assessment Module
 
-KOM integrates LLMs, ResNet architectures, and machine learning algorithms via three specialized agents:
+Processes multimodal patient data
 
-1. **Assessment Agent**  
-   - Processes multimodal data  
-   - Interacts with patients  
-   - Analyzes radiological images  
-   - Generates comprehensive evaluation reports  
+Conducts structured patient interactions
 
-2. **Risk Agent**  
-   - Forecasts individual KOA progression risk  
-   - Identifies specific high-risk factors  
-   - Produces detailed risk assessment reports  
+Analyzes radiological images
 
-3. **Treatment Multi-Agent Cluster**  
-   - Simulates MDT discussions using agents backed by independent evidence-based medical databases  
-   - Crafts personalized management plans based on assessment and risk reports  
+Generates complete clinical evaluation reports
 
----
+Risk Prediction Module
 
-> Please see the full documentation for instructions on getting started and deploying the KOM system.  
+Estimates individual disease progression risk
+
+Identifies patient-specific risk factors
+
+Produces detailed risk assessment results
+
+Treatment Planning Module
+
+Simulates MDT discussions
+
+Utilizes independent, evidence-based medical knowledge bases
+
+Develops individualized management plans based on assessment and risk results
+
+For detailed deployment and user instructions, please refer to the full system documentation.
