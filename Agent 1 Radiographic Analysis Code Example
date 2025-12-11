@@ -1,4 +1,20 @@
+"""
+Example Inference Framework
+-----------------------------------------
+This script demonstrates a possible structure for:
+1) Loading segmentation models,
+2) Running segmentation on knee radiographs,
+3) Extracting patches around predicted joint centers,
+4) Running multiple classification models on each patch,
+5) Aggregating results into a CSV file.
+
+This code focuses on showing the pipeline organization.
+It does not describe training details or implementation choices outside the scope
+of inference workflow demonstration.
+"""
+
 import os as _os
+import re as _re
 import cv2 as _cv
 import numpy as _np
 import pandas as _pd
@@ -7,150 +23,310 @@ import torch.nn.functional as _F
 import torchvision.models as _vm
 from torch import nn as _nn
 from torchvision import transforms as _tf
-import re as _re
 
+
+# -------------------------------------------------------------
+# Global configuration parameters
+# -------------------------------------------------------------
+_DEVICE = "cuda" if _t.cuda.is_available() else "cpu"
+_TO_TENSOR = _tf.ToTensor()
+
+# Image and patch configuration
+_IMG_SIZE = 512
+_PATCH_RADIUS = 96
+_SEG_THRESH = 0.3
+
+# Base paths for models and data
+_BASE_DIR = r"/project/data"
+_MODEL_A_PATH = _os.path.join(_BASE_DIR, "moduleA", "modelA_v1.pth")
+_MODEL_B_PATH = _os.path.join(_BASE_DIR, "moduleB", "modelB_v1.pth")
+_CLASS_DIR = _os.path.join(_BASE_DIR, "class_models")
+_IMG_ROOT = _os.path.join(_BASE_DIR, "images")
+_OUT_CSV = _os.path.join(_BASE_DIR, "results", "summary.csv")
+
+# Tag list for multiple classification heads
+_SUBTAGS = ["T01","T02","T03","T04","T05","T06","T07","T08","T09","T10","T11"]
+
+
+# -------------------------------------------------------------
+# UNet-like segmentation network
+# -------------------------------------------------------------
 class A1(_nn.Module):
+    """
+    UNet-style segmentation model.
+    The model takes a single-channel image and produces a single-channel
+    probability map of the same spatial resolution.
+    """
+
     def __init__(self):
         super(A1, self).__init__()
-        self.l1 = self._blk(1, 64)
-        self.l2 = self._blk(64, 128)
-        self.l3 = self._blk(128, 256)
-        self.l4 = self._blk(256, 512)
-        self.l5 = self._blk(512, 1024)
+
+        # Encoder stages
+        self.l1 = self._block(1, 64)
+        self.l2 = self._block(64, 128)
+        self.l3 = self._block(128, 256)
+        self.l4 = self._block(256, 512)
+        self.l5 = self._block(512, 1024)
+
+        # Decoder stages
         self.u4 = _nn.ConvTranspose2d(1024, 512, 2, 2)
-        self.d4 = self._blk(1024, 512)
+        self.d4 = self._block(1024, 512)
         self.u3 = _nn.ConvTranspose2d(512, 256, 2, 2)
-        self.d3 = self._blk(512, 256)
+        self.d3 = self._block(512, 256)
         self.u2 = _nn.ConvTranspose2d(256, 128, 2, 2)
-        self.d2 = self._blk(256, 128)
+        self.d2 = self._block(256, 128)
         self.u1 = _nn.ConvTranspose2d(128, 64, 2, 2)
-        self.d1 = self._blk(128, 64)
+        self.d1 = self._block(128, 64)
+
+        # Final 1×1 output layer
         self.out = _nn.Conv2d(64, 1, 1)
 
-    def _blk(self, i, o):
+    def _block(self, in_ch, out_ch):
+        """
+        A standard two-layer convolutional block with:
+        Conv → BN → ReLU → Conv → BN → ReLU.
+        """
         return _nn.Sequential(
-            _nn.Conv2d(i, o, 3, padding=1),
-            _nn.BatchNorm2d(o),
+            _nn.Conv2d(in_ch, out_ch, 3, padding=1),
+            _nn.BatchNorm2d(out_ch),
             _nn.ReLU(True),
-            _nn.Conv2d(o, o, 3, padding=1),
-            _nn.BatchNorm2d(o),
+            _nn.Conv2d(out_ch, out_ch, 3, padding=1),
+            _nn.BatchNorm2d(out_ch),
             _nn.ReLU(True),
         )
 
     def forward(self, x):
+        # Encoder path
         a1 = self.l1(x)
         a2 = self.l2(_F.max_pool2d(a1, 2))
         a3 = self.l3(_F.max_pool2d(a2, 2))
         a4 = self.l4(_F.max_pool2d(a3, 2))
         b  = self.l5(_F.max_pool2d(a4, 2))
-        y4 = self.u4(b); y4 = self.d4(_t.cat((y4, a4),1))
-        y3 = self.u3(y4); y3 = self.d3(_t.cat((y3, a3),1))
-        y2 = self.u2(y3); y2 = self.d2(_t.cat((y2, a2),1))
-        y1 = self.u1(y2); y1 = self.d1(_t.cat((y1, a1),1))
+
+        # Decoder path with skip connections
+        y4 = self.u4(b)
+        y4 = self.d4(_t.cat((y4, a4), 1))
+
+        y3 = self.u3(y4)
+        y3 = self.d3(_t.cat((y3, a3), 1))
+
+        y2 = self.u2(y3)
+        y2 = self.d2(_t.cat((y2, a2), 1))
+
+        y1 = self.u1(y2)
+        y1 = self.d1(_t.cat((y1, a1), 1))
+
+        # Output probability map
         return _t.sigmoid(self.out(y1))
 
-_base_dir = r'/project/data'
-_modelA_path = _os.path.join(_base_dir, 'moduleA', 'modelA_v1.pth')
-_modelB_path = _os.path.join(_base_dir, 'moduleB', 'modelB_v1.pth')
 
-print('>> Loading UNet A <<')
-_modA = A1().to('cuda' if _t.cuda.is_available() else 'cpu')
-_modA.load_state_dict(_t.load(_modelA_path, weights_only=True)); _modA.eval()
-print('>> UNet A loaded <<')
-print('>> Loading UNet B <<')
-_modB = A1().to('cuda' if _t.cuda.is_available() else 'cpu')
-_modB.load_state_dict(_t.load(_modelB_path, weights_only=True)); _modB.eval()
-print('>> UNet B loaded <<')
+# -------------------------------------------------------------
+# Load segmentation models A and B
+# -------------------------------------------------------------
+print(">> Loading UNet A <<")
+_modA = A1().to(_DEVICE)
+_modA.load_state_dict(_t.load(_MODEL_A_PATH, weights_only=True))
+_modA.eval()
 
-def L2(path):
-    print(f'>> Loading ResNet from {path} <<')
+print(">> Loading UNet B <<")
+_modB = A1().to(_DEVICE)
+_modB.load_state_dict(_t.load(_MODEL_B_PATH, weights_only=True))
+_modB.eval()
+
+
+# -------------------------------------------------------------
+# Load a ResNet-based classifier for each tag
+# -------------------------------------------------------------
+def load_resnet(path):
+    """
+    Loads a ResNet-50 classifier for one specific tag.
+
+    Steps:
+    1) Load a ResNet-50 backbone.
+    2) Replace the final FC layer according to checkpoint shape.
+    3) Replace input conv to support 1-channel input.
+    4) Load checkpoint weights.
+    """
     m = _vm.resnet50(weights=_vm.ResNet50_Weights.DEFAULT)
-    feat = m.fc.in_features
+
     ck = _t.load(path, weights_only=True)
-    out_s = ck['fc.weight'].shape[0]
-    m.fc = _nn.Linear(feat, out_s)
-    m.conv1 = _nn.Conv2d(1, 64, 7, 2, 3, False)
+    num_classes = ck["fc.weight"].shape[0]
+
+    m.fc = _nn.Linear(m.fc.in_features, num_classes)
+    m.conv1 = _nn.Conv2d(1, 64, 7, stride=2, padding=3, bias=False)
+
     m.load_state_dict(ck)
-    m = m.to('cuda' if _t.cuda.is_available() else 'cpu')
+    m = m.to(_DEVICE)
     m.eval()
-    print(f'>> ResNet from {path} ready <<')
+
     return m
 
-_subtags = ['T01','T02','T03','T04','T05','T06','T07','T08','T09','T10','T11']
-_class_dir = _os.path.join(_base_dir, 'class_models')
-_R = {}
-for tag in _subtags:
-    fp = _os.path.join(_class_dir, tag, f'{tag}_best.pth')
+
+# Load all classification models
+_CLASSIFIERS = {}
+for tag in _SUBTAGS:
+    fp = _os.path.join(_CLASS_DIR, tag, f"{tag}_best.pth")
     if _os.path.exists(fp):
-        _R[tag] = L2(fp)
+        _CLASSIFIERS[tag] = load_resnet(fp)
     else:
-        print(f'Warning: missing {fp}')
+        print(f"Warning: missing classifier {fp}")
 
-_img_root = _os.path.join(_base_dir, 'images')
-_out_csv = _os.path.join(_base_dir, 'results', 'summary.csv')
 
-def F1(m):
-    cnt,_ = _cv.findContours(m, _cv.RETR_EXTERNAL, _cv.CHAIN_APPROX_SIMPLE)
-    return [(
-        int(_cv.moments(c)['m10']/_cv.moments(c)['m00']),
-        int(_cv.moments(c)['m01']/_cv.moments(c)['m00'])
-    ) for c in cnt if _cv.moments(c)['m00']]
+# -------------------------------------------------------------
+# Compute contour centroids from a binary mask
+# -------------------------------------------------------------
+def extract_centroids(mask):
+    """
+    Given a binary mask (uint8, 0 or 255), extract contour centroids
+    using image moments.
+    """
+    contours, _ = _cv.findContours(mask, _cv.RETR_EXTERNAL, _cv.CHAIN_APPROX_SIMPLE)
+    centers = []
 
-def F2(img, cts):
-    lst=[]
-    for x,y in cts:
-        x0,x1 = max(x-96,0), min(x+96, img.shape[1])
-        y0,y1 = max(y-96,0), min(y+96, img.shape[0])
-        cp = _cv.resize(img[y0:y1, x0:x1], (512,512))
-        lst.append((cp, x))
-    return lst
+    for c in contours:
+        m = _cv.moments(c)
+        if m["m00"] != 0:
+            cx = int(m["m10"] / m["m00"])
+            cy = int(m["m01"] / m["m00"])
+            centers.append((cx, cy))
 
-def P1(fp):
-    print(f'>> Processing {fp} <<')
-    fn = _os.path.basename(fp)
-    fn_clean = _re.sub(r'[\^\s]', '', fn)
-    if 'OAIXRAYSCREENINGKNEE' not in fn_clean:
+    return centers
+
+
+# -------------------------------------------------------------
+# Extract local patches around predicted centers
+# -------------------------------------------------------------
+def extract_patches(img, centers):
+    """
+    For each center (x, y):
+    1) Extract a square region of width 2 * PATCH_RADIUS,
+    2) Clip boundaries,
+    3) Resize to 512×512,
+    4) Return a list of (patch_image, x_position).
+    """
+    patches = []
+
+    for x, y in centers:
+        x0 = max(x - _PATCH_RADIUS, 0)
+        x1 = min(x + _PATCH_RADIUS, img.shape[1])
+        y0 = max(y - _PATCH_RADIUS, 0)
+        y1 = min(y + _PATCH_RADIUS, img.shape[0])
+
+        patch = img[y0:y1, x0:x1]
+        patch = _cv.resize(patch, (_IMG_SIZE, _IMG_SIZE))
+
+        patches.append((patch, x))
+
+    return patches
+
+
+# -------------------------------------------------------------
+# Process a single image
+# -------------------------------------------------------------
+def process_image(filepath):
+    """
+    Performs inference on one radiograph:
+
+    Steps:
+    1) Parse patient ID from filename.
+    2) Load image in grayscale.
+    3) Resize and center-crop to 512×512.
+    4) Apply UNet A and B for segmentation.
+    5) Extract centroids and choose the set with more points.
+    6) Extract patches around centroids.
+    7) Run each patch through all classification models.
+    8) Return aggregated left/right predictions for each tag.
+    """
+    filename = _os.path.basename(filepath)
+    clean_name = _re.sub(r"[\^\s]", "", filename)
+
+    # Expect a specific naming pattern
+    if "OAIXRAYSCREENINGKNEE" not in clean_name:
         return None, None
-    pid = fn_clean.split('_')[0]
-    im = _cv.imread(fp, _cv.IMREAD_GRAYSCALE)
-    if im is None:
+
+    pid = clean_name.split("_")[0]
+
+    # Load grayscale image
+    img = _cv.imread(filepath, _cv.IMREAD_GRAYSCALE)
+    if img is None:
         return None, None
-    h,w = im.shape[:2]
-    if min(h,w) != 512:
-        r = 512.0/min(h,w)
-        nh, nw = int(h*r), int(w*r)
-        im = _cv.resize(im, (nw, nh))
-        cx, cy = nw//2, nh//2
-        im = im[cy-256:cy+256, cx-256:cx+256]
-    t = _tf.ToTensor()(im).unsqueeze(0).to('cuda' if _t.cuda.is_available() else 'cpu')
+
+    # Resize to maintain min dimension = 512, then center-crop
+    h, w = img.shape
+    if min(h, w) != _IMG_SIZE:
+        scale = _IMG_SIZE / min(h, w)
+        nh, nw = int(h * scale), int(w * scale)
+        img = _cv.resize(img, (nw, nh))
+
+        cx, cy = nw // 2, nh // 2
+        img = img[cy - 256:cy + 256, cx - 256:cx + 256]
+
+    # Convert to tensor
+    t = _TO_TENSOR(img).unsqueeze(0).to(_DEVICE)
+
+    # Segmentation masks from model A
     try:
-        mA = (_modA(t).squeeze().cpu().numpy()>0.3).astype(_np.uint8)*255
+        probA = _modA(t).squeeze().cpu().numpy()
+        maskA = (probA > _SEG_THRESH).astype(_np.uint8) * 255
     except RuntimeError:
         return None, None
-    mB = (_modB(t).squeeze().cpu().numpy()>0.3).astype(_np.uint8)*255
-    cA, cB = F1(mA), F1(mB)
-    cts = cA if len(cA)>=len(cB) else cB
-    cps = F2(im, cts)
-    res = {}
-    for name, md in _R.items():
-        tmp = {'L':None, 'R':None}
-        for cp, x in cps:
-            side = 'L' if x < mA.shape[1]//2 else 'R'
-            out = md(_tf.ToTensor()(cp).unsqueeze(0).to('cuda' if _t.cuda.is_available() else 'cpu'))
-            tmp[side] = int(_t.argmax(out,1).cpu().item())
-        res[name] = tmp
-    return pid, res
 
-_df = _pd.DataFrame(columns=['Patient'])
-for root, _, files in _os.walk(_img_root):
-    for f in files:
-        pid, result = P1(_os.path.join(root, f))
-        if not pid:
+    # Segmentation masks from model B
+    probB = _modB(t).squeeze().cpu().numpy()
+    maskB = (probB > _SEG_THRESH).astype(_np.uint8) * 255
+
+    # Extract centroids from both masks
+    centersA = extract_centroids(maskA)
+    centersB = extract_centroids(maskB)
+
+    # Select the set with more centers
+    centers = centersA if len(centersA) >= len(centersB) else centersB
+
+    # Extract local image patches
+    patches = extract_patches(img, centers)
+
+    # Classification result structure
+    result = {}
+
+    for tag, model in _CLASSIFIERS.items():
+        pred_lr = {"L": None, "R": None}
+
+        for patch, x in patches:
+            side = "L" if x < (_IMG_SIZE // 2) else "R"
+
+            tensor_patch = _TO_TENSOR(patch).unsqueeze(0).to(_DEVICE)
+            logits = model(tensor_patch)
+            pred = int(_t.argmax(logits, 1).cpu().item())
+
+            pred_lr[side] = pred
+
+        result[tag] = pred_lr
+
+    return pid, result
+
+
+# -------------------------------------------------------------
+# Batch processing loop
+# -------------------------------------------------------------
+rows = []
+
+for root, _, files in _os.walk(_IMG_ROOT):
+    for fname in files:
+        pid, res = process_image(_os.path.join(root, fname))
+        if pid is None:
             continue
-        row = {'Patient': pid}
-        for nm, sides in result.items():
-            for sd, val in sides.items():
-                row[f'{nm}_{sd}'] = val
-        _df = _pd.concat([_df, _pd.DataFrame([row])], ignore_index=True)
-_df.to_csv(_out_csv, index=False)
-print(f'>> Results saved to {_out_csv} <<')
+
+        row = {"Patient": pid}
+
+        # Flatten classification results: e.g. T01_L, T01_R
+        for tag, sides in res.items():
+            for side, val in sides.items():
+                row[f"{tag}_{side}"] = val
+
+        rows.append(row)
+
+# Convert collected rows into DataFrame
+_df = _pd.DataFrame(rows)
+_df.to_csv(_OUT_CSV, index=False)
+
+print(f">> Results saved to {_OUT_CSV} <<")
