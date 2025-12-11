@@ -1,6 +1,6 @@
 ---
 
-# **KOM: Knee Osteoarthritis Management**
+# **KOM: Knee Osteoarthritis (KOA) Management**
 
 ### **A Multi-Agent Artificial Intelligence System for Precision KOA Care**
 
