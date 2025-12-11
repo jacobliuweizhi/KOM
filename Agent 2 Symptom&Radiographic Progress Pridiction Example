@@ -1,77 +1,276 @@
-import pickle as _pk
-import pandas as _pd
-import numpy as _np
-import torch as _t
-import torch.nn as _nn
-from pathlib import Path as _P
-from sklearn.preprocessing import StandardScaler as _SS
+"""
+What this script does:
+- Load a CSV file containing ID and input features.
+- Standardize continuous features with StandardScaler.
+- For each target variable, load a pre-trained PyTorch model and generate predictions.
+- Optionally, apply a simple multiplicative adjustment to some input features
+  (e.g., simulate "30% increase in strength") and run a second round of predictions.
+- Save both original and adjusted predictions to CSV files.
 
-_CFG = {
-    'data_file': _P('/data/inputs/merged.csv'),
-    'models_dir': _P('/models/dnn'),
-    'output_file': _P('/data/outputs/preds.csv'),
-    'output_adj_file': _P('/data/outputs/preds_adj.csv'),
-    'continuous': [
-        'V00AGE','P01BMI','P01WEIGHT','V00rfmaxf','V00remaxf','V00lfmaxf','V00lemaxf',
-        'V00KOOSKPR','V00KOOSYMR','V00KOOSKPL','V00KOOSYML','V00KOOSFSR','V00KOOSQOL',
-        'V00rfmaxf_norm_BMI','V00remaxf_norm_BMI','V00lfmaxf_norm_BMI','V00lemaxf_norm_BMI'
+To use this template in your own project:
+1. Replace the paths in PREDICT_CONFIG with your actual file locations.
+2. Replace `continuous_features` and `targets` with your own column names.
+3. (Optional) Adjust `adjust_columns` and `adjust_factor` to match your scenario.
+4. Make sure that your saved models match the network architecture defined here.
+"""
+
+from pathlib import Path
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+from sklearn.preprocessing import StandardScaler
+
+
+# -------------------------
+# 1. Configuration
+# -------------------------
+
+PREDICT_CONFIG = {
+    # Input CSV with at least: an ID column + continuous feature columns
+    "data_file": Path("PATH_TO_YOUR_INPUT_DATA.csv"),
+
+    # Directory containing subfolders, one per target, each with a model file
+    # e.g., models_dir / "<target_name>" / "<target_name>.pth"
+    "models_dir": Path("PATH_TO_YOUR_MODEL_DIRECTORY"),
+
+    # Output CSVs
+    "output_file": Path("PATH_TO_SAVE_RAW_PREDICTIONS.csv"),
+    "output_adj_file": Path("PATH_TO_SAVE_ADJUSTED_PREDICTIONS.csv"),
+
+    # Continuous input features used by the model
+    "continuous_features": [
+        # "feature_1", "feature_2", ...
     ],
-    'classification_targets': [
-        'V01XRKL_Left','V01XRKL_Right','V06XRKL_Left','V06XRKL_Right'
+
+    # Names of targets; each target corresponds to one saved model
+    "targets": [
+        # "target_1", "target_2", ...
     ],
-    'adjust_cols': ['V00rfmaxf','V00remaxf','V00lfmaxf','V00lemaxf'],
-    'adjust_factor': 1.3
+
+    # Columns to apply a multiplicative adjustment on
+    # (optional; can be empty if you do not want adjusted predictions)
+    "adjust_columns": [
+        # "feature_1", "feature_2", ...
+    ],
+
+    # Factor used in the adjusted scenario (e.g., 1.3 = +30%)
+    "adjust_factor": 1.3,
+
+    # Name of the ID column in the CSV
+    "id_column": "ID"
 }
-device = _t.device('cuda' if _t.cuda.is_available() else 'cpu')
 
-def _load(p, feats):
-    df = _pd.read_csv(p)
-    df['ID'] = df['ID'].astype(str).str.replace("b'","").str.replace("'","").astype(int)
-    miss = set(feats) - set(df.columns)
-    for m in miss: df[m] = 0
-    df = df.replace([_np.inf, -_np.inf], _np.nan).fillna(df.mean())
-    X = df[feats].values
-    scl = _SS().fit(X)
-    return df['ID'].values, scl.transform(X), scl
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def _init_net(inp):
-    class M(_nn.Module):
-        def __init__(self):
+
+# -------------------------
+# 2. Data loading
+# -------------------------
+
+def load_and_preprocess(data_path: Path,
+                        feature_names: list[str],
+                        id_column: str = "ID"):
+    """
+    Load data from CSV, select features, and standardize them.
+
+    Steps:
+    - Load the CSV.
+    - Ensure the ID column is in a consistent format.
+    - Create any missing feature columns and fill with zeros.
+    - Replace inf values with NaN and impute missing entries with column means.
+    - Fit a StandardScaler on the selected features and transform them.
+
+    Returns
+    -------
+    ids : np.ndarray
+        Array of IDs (as strings by default).
+    X_scaled : np.ndarray
+        Scaled feature matrix of shape (n_samples, n_features).
+    scaler : StandardScaler
+        Fitted scaler object (useful if you later want to standardize new data).
+    """
+    df = pd.read_csv(data_path)
+
+    # Ensure ID is a simple string; adjust if your data needs more cleaning.
+    if id_column not in df.columns:
+        raise ValueError(f"ID column '{id_column}' not found in data.")
+    df[id_column] = df[id_column].astype(str)
+
+    # Add missing feature columns (if any) and fill with zeros
+    missing = set(feature_names) - set(df.columns)
+    for col in missing:
+        df[col] = 0.0
+
+    # Ensure feature order
+    df_features = df[feature_names].copy()
+
+    # Replace inf with NaN, then impute with column means
+    df_features = df_features.replace([np.inf, -np.inf], np.nan)
+    df_features = df_features.fillna(df_features.mean())
+
+    X = df_features.values
+    scaler = StandardScaler().fit(X)
+    X_scaled = scaler.transform(X)
+
+    ids = df[id_column].values
+    return ids, X_scaled, scaler
+
+
+# -------------------------
+# 3. Model definition
+# -------------------------
+
+def build_regression_network(input_dim: int) -> nn.Module:
+    """
+    Build a fully-connected regression network for tabular data.
+
+    This is a generic architecture:
+    - [input_dim] -> 256 -> 128 -> 64 -> 32 -> 1
+    - Each hidden layer uses BatchNorm, Mish, and Dropout.
+
+    Make sure your saved model weights were trained with the same architecture.
+    """
+
+    class RegressionNet(nn.Module):
+        def __init__(self, in_features: int):
             super().__init__()
-            self.n = _nn.Sequential(
-                _nn.Linear(inp,256), _nn.BatchNorm1d(256), _nn.Mish(), _nn.Dropout(0.3),
-                _nn.Linear(256,128), _nn.BatchNorm1d(128), _nn.Mish(), _nn.Dropout(0.3),
-                _nn.Linear(128,64),  _nn.BatchNorm1d(64),  _nn.Mish(), _nn.Dropout(0.3),
-                _nn.Linear(64,32),   _nn.BatchNorm1d(32),   _nn.Mish(), _nn.Dropout(0.3),
-                _nn.Linear(32,1)
+            self.net = nn.Sequential(
+                nn.Linear(in_features, 256),
+                nn.BatchNorm1d(256),
+                nn.Mish(),
+                nn.Dropout(0.3),
+
+                nn.Linear(256, 128),
+                nn.BatchNorm1d(128),
+                nn.Mish(),
+                nn.Dropout(0.3),
+
+                nn.Linear(128, 64),
+                nn.BatchNorm1d(64),
+                nn.Mish(),
+                nn.Dropout(0.3),
+
+                nn.Linear(64, 32),
+                nn.BatchNorm1d(32),
+                nn.Mish(),
+                nn.Dropout(0.3),
+
+                nn.Linear(32, 1)
             )
-        def forward(self, x): return self.n(x)
-    return M().to(device)
 
-def _predict(ids, X, scl):
-    feats = _CFG['continuous']
-    targets = _CFG['classification_targets']
-    adj = np.array([_CFG['adjust_factor'] if f in _CFG['adjust_cols'] else 1 for f in feats]).reshape(1,-1)
-    X_adj = X * adj
-    preds, preds_adj = {}, {}
-    for t in targets:
-        mp = _CFG['models_dir']/t/f'{t}.pth'
-        if mp.exists():
-            m = _init_net(X.shape[1])
-            sd = _t.load(mp, map_location=device, weights_only=True) if hasattr(_t,'__version__') and int(_t.__version__.split('.')[1])>=9 else _t.load(mp, map_location=device)
-            m.load_state_dict(sd); m.eval()
-            xt = _t.tensor(X, dtype=_t.float32).to(device)
-            xa = _t.tensor(X_adj, dtype=_t.float32).to(device)
-            with _t.no_grad():
-                preds[t] = m(xt).cpu().numpy().squeeze()
-                preds_adj[t] = m(xa).cpu().numpy().squeeze()
-    df1 = _pd.DataFrame({'ID': ids, **preds})
-    df2 = _pd.DataFrame({'ID': ids, **preds_adj})
-    df1.to_csv(_CFG['output_file'], index=False)
-    df2.to_csv(_CFG['output_adj_file'], index=False)
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            return self.net(x)
 
-if __name__=='__main__':
-    cols = _CFG['continuous'] + _CFG['classification_targets']
-    ids, X, scl = _load(_CFG['data_file'], cols)
-    _predict(ids, X, scl)
-    print('>> Done <<')
+    return RegressionNet(input_dim).to(DEVICE)
+
+
+# -------------------------
+# 4. Prediction
+# -------------------------
+
+def run_predictions(ids: np.ndarray,
+                    X_scaled: np.ndarray,
+                    config: dict):
+    """
+    Run predictions for all targets, for both:
+    - the original standardized input features
+    - a simple adjusted version (if adjust_columns is specified).
+
+    Assumes:
+    - Each target has a corresponding model file:
+        models_dir / target / f"{target}.pth"
+    - The models were trained with the same architecture defined in build_regression_network.
+    """
+    feature_names = config["continuous_features"]
+    targets = config["targets"]
+    adjust_columns = set(config.get("adjust_columns", []))
+    adjust_factor = config.get("adjust_factor", 1.0)
+
+    # Build a multiplicative adjustment vector, one factor per feature
+    if adjust_columns:
+        factors = np.array([
+            adjust_factor if f in adjust_columns else 1.0
+            for f in feature_names
+        ]).reshape(1, -1)
+        X_scaled_adj = X_scaled * factors
+    else:
+        # If no adjusted columns, just copy the original matrix
+        X_scaled_adj = X_scaled.copy()
+
+    preds_raw: dict[str, np.ndarray] = {}
+    preds_adj: dict[str, np.ndarray] = {}
+
+    n_samples, n_features = X_scaled.shape
+    X_tensor = torch.tensor(X_scaled, dtype=torch.float32, device=DEVICE)
+    X_adj_tensor = torch.tensor(X_scaled_adj, dtype=torch.float32, device=DEVICE)
+
+    for target in targets:
+        model_path = config["models_dir"] / target / f"{target}.pth"
+
+        if not model_path.exists():
+            print(f"Warning: model file not found for target '{target}': {model_path}")
+            continue
+
+        # Initialize network and load weights
+        model = build_regression_network(n_features)
+        # torch.load kwargs: newer versions support weights_only
+        try:
+            state_dict = torch.load(model_path, map_location=DEVICE, weights_only=True)
+        except TypeError:
+            state_dict = torch.load(model_path, map_location=DEVICE)
+
+        model.load_state_dict(state_dict)
+        model.eval()
+
+        with torch.no_grad():
+            y_raw = model(X_tensor).cpu().numpy().squeeze()
+            y_adj = model(X_adj_tensor).cpu().numpy().squeeze()
+
+        preds_raw[target] = y_raw
+        preds_adj[target] = y_adj
+
+    # Assemble prediction DataFrames
+    df_raw = pd.DataFrame({"ID": ids})
+    df_adj = pd.DataFrame({"ID": ids})
+
+    for target in preds_raw:
+        df_raw[target] = preds_raw[target]
+        df_adj[target] = preds_adj[target]
+
+    return df_raw, df_adj
+
+
+# -------------------------
+# 5. Main entry point
+# -------------------------
+
+def main():
+    config = PREDICT_CONFIG
+
+    # Combine feature list and target list only for loading;
+    # you might also choose to include targets as columns in the CSV.
+    feature_cols = config["continuous_features"]
+
+    ids, X_scaled, scaler = load_and_preprocess(
+        data_path=config["data_file"],
+        feature_names=feature_cols,
+        id_column=config["id_column"]
+    )
+
+    df_raw, df_adj = run_predictions(ids, X_scaled, config)
+
+    # Make sure output directories exist
+    config["output_file"].parent.mkdir(parents=True, exist_ok=True)
+    config["output_adj_file"].parent.mkdir(parents=True, exist_ok=True)
+
+    df_raw.to_csv(config["output_file"], index=False)
+    df_adj.to_csv(config["output_adj_file"], index=False)
+
+    print("Prediction finished.")
+    print(f"Raw predictions saved to: {config['output_file']}")
+    print(f"Adjusted predictions saved to: {config['output_adj_file']}")
+
+
+if __name__ == "__main__":
+    main()
