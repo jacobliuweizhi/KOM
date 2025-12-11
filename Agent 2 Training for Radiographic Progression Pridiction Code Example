@@ -1,250 +1,748 @@
+"""
+This script shows a structure for:
+- Preprocessing (missing value removal, encoding, scaling)
+- Class balancing (oversampling / undersampling)
+- Training multiple models
+- Evaluating them with repeated subsampling on the test set
+- Saving metrics, confusion matrices (with multiple colormaps), and ROC curves
+
+You should treat this as a template:
+- Replace DATA_PATH with your CSV file path
+- Replace CATEGORICAL_FEATURES / CONTINUOUS_FEATURES with your own features
+- Replace TARGET_COLUMNS with your own classification targets
+"""
+
 import os
 import traceback
 from datetime import datetime
 
 import joblib
+import lightgbm as lgb
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.utils import resample
-from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score,
-    f1_score, roc_auc_score, roc_curve, auc,
-    confusion_matrix
-)
+import seaborn as sns
+from lightgbm import LGBMClassifier
 from sklearn.ensemble import (
     RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
 )
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score,
+    roc_auc_score, roc_curve, auc, confusion_matrix
+)
+from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.svm import SVC
+from sklearn.utils import resample
 from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier, early_stopping, log_evaluation
 
-# 1. Plot style
 
-def set_default_style():
-    plt.style.use('classic')
+# ======================================================
+# 1. Global plotting style (example)
+# ======================================================
+
+def set_nature_style():
+    """Set a clean plotting style similar to journal figures."""
+    plt.style.use('seaborn-v0_8-whitegrid')
     plt.rcParams.update({
         'figure.dpi': 300,
         'savefig.dpi': 300,
         'font.family': 'sans-serif',
-        'font.sans-serif': ['Arial'],
+        'font.sans-serif': ['Helvetica', 'Arial', 'DejaVu Sans'],
         'font.size': 12,
         'axes.edgecolor': 'black',
-        'axes.linewidth': 1,
+        'axes.linewidth': 1.2,
         'axes.labelsize': 14,
         'axes.titlesize': 16,
-        'lines.linewidth': 2,
-        'lines.markersize': 6,
+        'axes.titleweight': 'bold',
         'xtick.direction': 'out',
         'ytick.direction': 'out',
+        'xtick.major.size': 4,
+        'ytick.major.size': 4,
+        'xtick.labelsize': 12,
+        'ytick.labelsize': 12,
         'legend.frameon': False,
         'legend.fontsize': 12,
+        'lines.linewidth': 2,
+        'lines.markersize': 6,
+        'savefig.bbox': 'tight',
     })
+    plt.rcParams['axes.unicode_minus'] = False
 
-set_default_style()
 
-# 2. Data preprocessing
+set_nature_style()
+
+
+# ======================================================
+# 2. Data preprocessing utilities
+# ======================================================
 
 class DataPreprocessor:
+    """
+    Simple preprocessing helper:
+    - Remove rows with missing values.
+    - Encode categorical features with LabelEncoder.
+    - Scale continuous features with StandardScaler.
+
+    Note on categorical handling:
+    - During fitting, encoders are learned from the training data.
+    - During transformation, unseen categories are mapped to the first
+      known class to avoid errors. This is a design choice that you may
+      want to revisit depending on your data.
+    """
+
     def __init__(self):
-        self.encoders = {}
+        self.label_encoders = {}
         self.scaler = StandardScaler()
 
-    def drop_na(self, X, y=None):
-        if y is None:
-            cleaned = X.dropna()
-            return cleaned
-        df = pd.concat([X, y], axis=1).dropna()
-        return df.iloc[:, :-1], df.iloc[:, -1]
+    def remove_missing_values(self, X, y=None):
+        """
+        Drop rows with missing values in X (and y if provided).
 
-    def balance(self, X, y, n_per_class=1000):
-        dfs = []
-        for cls in np.unique(y):
-            Xc = X[y == cls]
-            yc = y[y == cls]
-            n = min(len(yc), n_per_class)
-            Xs, ys = resample(Xc, yc, replace=(len(yc)<n_per_class), n_samples=n, random_state=0)
-            dfs.append(pd.concat([Xs, ys.reset_index(drop=True)], axis=1))
-        balanced = pd.concat(dfs, axis=0)
-        return balanced.iloc[:, :-1], balanced.iloc[:, -1]
+        Returns
+        -------
+        X_clean : pandas.DataFrame
+        y_clean : pandas.Series or None
+        """
+        if y is not None:
+            combined = pd.concat([X, y], axis=1)
+            original_count = len(combined)
+            combined = combined.dropna()
+            removed = original_count - len(combined)
+            print(f"Removed {removed} records with missing values "
+                  f"({removed / original_count * 100:.2f}%)")
+            return combined.iloc[:, :-1], combined.iloc[:, -1]
+        else:
+            original_count = len(X)
+            X_clean = X.dropna()
+            removed = original_count - len(X_clean)
+            print(f"Removed {removed} records with missing values "
+                  f"({removed / original_count * 100:.2f}%)")
+            return X_clean
 
-    def transform(self, df, categorical, continuous, fit=True):
-        out = df.copy()
-        for feat in categorical:
-            if fit:
-                le = LabelEncoder()
-                out[feat] = le.fit_transform(out[feat].astype(str))
-                self.encoders[feat] = le
+    def balance_dataset(self, X, y, n_samples_per_class=1000):
+        """
+        Balance the dataset to have approximately n_samples_per_class per class.
+
+        Strategy:
+        - For each class:
+          - If it has fewer than n_samples_per_class, oversample with replacement.
+          - If it has more, subsample without replacement.
+        """
+
+        print("\nClass distribution before balancing:")
+        for lbl in np.unique(y):
+            print(f"  Class {lbl}: {sum(y == lbl)}")
+
+        Xs, ys = [], []
+
+        for lbl in np.unique(y):
+            mask = (y == lbl)
+            Xc, yc = X[mask], y[mask]
+            if len(Xc) < n_samples_per_class:
+                Xr, yr = resample(
+                    Xc, yc,
+                    replace=True,
+                    n_samples=n_samples_per_class,
+                    random_state=42
+                )
             else:
-                le = self.encoders.get(feat)
-                out[feat] = le.transform(out[feat].astype(str).map(lambda x: x if x in le.classes_ else le.classes_[0]))
-        if continuous:
+                Xr, yr = resample(
+                    Xc, yc,
+                    replace=False,
+                    n_samples=n_samples_per_class,
+                    random_state=42
+                )
+            Xs.append(Xr)
+            ys.append(yr)
+
+        Xb = pd.concat(Xs, axis=0)
+        yb = pd.concat(ys, axis=0)
+
+        # Optional: shuffle the balanced dataset
+        balanced = Xb.copy()
+        balanced['__y__'] = yb.values
+        balanced = balanced.sample(frac=1.0, random_state=42)
+        Xb = balanced.drop(columns='__y__')
+        yb = balanced['__y__']
+
+        print("\nClass distribution after balancing:")
+        for lbl in np.unique(yb):
+            print(f"  Class {lbl}: {sum(yb == lbl)}")
+
+        return Xb, yb
+
+    def preprocess(self, data, categorical, continuous, fit=True):
+        """
+        Encode categorical and scale continuous features.
+
+        Parameters
+        ----------
+        data : pandas.DataFrame
+            Input data.
+        categorical : list of str
+            Names of categorical features.
+        continuous : list of str
+            Names of continuous features.
+        fit : bool
+            If True, fit encoders/scaler; otherwise only transform.
+
+        Returns
+        -------
+        df_out : pandas.DataFrame
+            Preprocessed copy of the input data.
+        """
+        df = data.copy()
+
+        # Encode categorical features
+        for feat in categorical:
+            if feat in df:
+                if fit:
+                    le = LabelEncoder()
+                    df[feat] = le.fit_transform(df[feat].astype(str))
+                    self.label_encoders[feat] = le
+                else:
+                    le = self.label_encoders[feat]
+                    classes = le.classes_
+                    # Map unseen categories to the first known class (design choice)
+                    df[feat] = df[feat].astype(str).map(
+                        lambda x: x if x in classes else classes[0]
+                    )
+                    df[feat] = le.transform(df[feat])
+
+        # Scale continuous features
+        valid_cont = [c for c in continuous if c in df]
+        if valid_cont:
             if fit:
-                self.scaler.fit(out[continuous])
-            out[continuous] = self.scaler.transform(out[continuous])
-        return out
+                self.scaler.fit(df[valid_cont])
+            df[valid_cont] = self.scaler.transform(df[valid_cont])
 
-# 3. Plotting utilities
-
-def plot_conf_matrix(cm, labels, name, out_dir, cmaps=None):
-    normed = cm.astype(float) / cm.sum(axis=1, keepdims=True)
-    os.makedirs(out_dir, exist_ok=True)
-    cmaps = cmaps or ['Blues']
-    for cmap in cmaps:
-        fig, ax = plt.subplots()
-        im = ax.imshow(normed, cmap=cmap)
-        for i in range(normed.shape[0]):
-            for j in range(normed.shape[1]):
-                ax.text(j, i, f"{normed[i,j]:.2f}", ha='center')
-        ax.set_xticks(range(len(labels)))
-        ax.set_yticks(range(len(labels)))
-        ax.set_xticklabels(labels, rotation=45)
-        ax.set_yticklabels(labels)
-        plt.title(f"{name} CM({cmap})")
-        path = os.path.join(out_dir, f"{name}_cm_{cmap}.png")
-        plt.savefig(path)
-        plt.close(fig)
+        return df
 
 
-def plot_roc(model, X, y, name, out_dir):
-    prob = model.predict_proba(X)
-    classes = np.unique(y)
-    fig, ax = plt.subplots()
+# ======================================================
+# 3. Confusion matrix plotting (multiple colormaps)
+# ======================================================
+
+def plot_confusion_matrix(cm, classes, model_name, save_dir,
+                          project_name='',
+                          cmaps_for_type=None,
+                          plot_types=('imshow', 'heatmap')):
+    """
+    Plot and save confusion matrices with different colormaps.
+
+    Parameters
+    ----------
+    cm : ndarray
+        Raw confusion matrix (counts, not normalized).
+    classes : list or array
+        Label names in the same order as the confusion matrix.
+    model_name : str
+        Name of the model (used in titles and file names).
+    save_dir : str
+        Directory to save the figures.
+    project_name : str, optional
+        Optional project name to prepend to the title.
+    cmaps_for_type : dict, optional
+        Mapping from plot_type to a list of colormap names.
+        Example: {'imshow': ['Reds', 'Oranges'], 'heatmap': ['Blues']}
+    plot_types : tuple
+        Types of plots to generate, choose from {'imshow', 'heatmap'}.
+    """
+
+    if cmaps_for_type is None:
+        cmaps_for_type = {
+            'imshow': ['Oranges', 'Reds', 'Purples'],
+            'heatmap': ['Blues', 'Greens', 'Greys']
+        }
+
+    # Row-normalized confusion matrix
+    cm_norm = cm.astype(float) / cm.sum(axis=1, keepdims=True)
+    os.makedirs(save_dir, exist_ok=True)
+
+    for ptype in plot_types:
+        cmaps = cmaps_for_type.get(ptype, ['Blues'])
+        for cmap in cmaps:
+            fig, ax = plt.subplots(figsize=(6, 6))
+
+            if ptype == 'imshow':
+                im = ax.imshow(cm_norm, cmap=cmap, interpolation='nearest')
+                for i in range(cm_norm.shape[0]):
+                    for j in range(cm_norm.shape[1]):
+                        ax.text(
+                            j, i, f"{cm_norm[i, j]:.2f}",
+                            ha="center", va="center"
+                        )
+            elif ptype == 'heatmap':
+                sns.heatmap(
+                    cm_norm,
+                    annot=True,
+                    fmt=".2f",
+                    cmap=cmap,
+                    cbar=False,
+                    linewidths=0,
+                    xticklabels=classes,
+                    yticklabels=classes,
+                    ax=ax
+                )
+            else:
+                raise ValueError(f"Unknown plot type: {ptype}")
+
+            ax.grid(False)
+
+            title = f"{model_name} Confusion Matrix ({ptype}, {cmap})"
+            if project_name:
+                title = f"{project_name} - {title}"
+            ax.set(
+                xticks=np.arange(len(classes)),
+                yticks=np.arange(len(classes)),
+                xticklabels=classes,
+                yticklabels=classes,
+                xlabel='Predicted label',
+                ylabel='True label',
+                title=title
+            )
+            plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+
+            # Save with title
+            fname = f"{model_name}_cm_{ptype}_{cmap}.png"
+            path = os.path.join(save_dir, fname)
+            plt.savefig(path, dpi=300)
+
+            # Save without title
+            ax.set_title("")
+            no_title_fname = f"{model_name}_cm_{ptype}_{cmap}_notitle.png"
+            plt.savefig(os.path.join(save_dir, no_title_fname), dpi=300)
+
+            plt.close(fig)
+
+
+# ======================================================
+# 4. ROC curves plotting
+# ======================================================
+
+def plot_roc_curves(model, X_test, y_test, model_name, save_dir):
+    """
+    Plot multi-class ROC curves (one-vs-rest) if predict_proba is available.
+    Otherwise, do nothing.
+    """
+    if not hasattr(model, "predict_proba"):
+        print(f"{model_name} does not support predict_proba; ROC curve skipped.")
+        return
+
+    y_proba = model.predict_proba(X_test)
+    classes = getattr(model, "classes_", np.unique(y_test))
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+
     for i, cls in enumerate(classes):
-        bin_y = (y == cls).astype(int)
-        fpr, tpr, _ = roc_curve(bin_y, prob[:, i])
-        ax.plot(fpr, tpr, label=f"{cls} ({auc(fpr,tpr):.2f})")
-    ax.plot([0,1],[0,1],'--')
-    plt.title(f"{name} ROC")
-    os.makedirs(out_dir, exist_ok=True)
-    plt.savefig(os.path.join(out_dir, f"{name}_roc.png"))
+        y_bin = (y_test == cls).astype(int)
+        fpr, tpr, _ = roc_curve(y_bin, y_proba[:, i])
+        roc_auc = auc(fpr, tpr)
+        ax.plot(fpr, tpr, label=f'{cls} (AUC={roc_auc:.2f})')
+
+    ax.plot([0, 1], [0, 1], linestyle='--', color='grey')
+    ax.set(
+        xlim=(0, 1), ylim=(0, 1),
+        xlabel='False Positive Rate',
+        ylabel='True Positive Rate',
+        title=f'{model_name} ROC Curve'
+    )
+    ax.legend(loc='lower right')
+
+    os.makedirs(save_dir, exist_ok=True)
+    base = os.path.join(save_dir, f'{model_name}_roc.png')
+    plt.savefig(base, dpi=300)
+
+    # Version without title (for clean figures)
+    ax.set_title("")
+    plt.savefig(base.replace('.png', '_notitle.png'), dpi=300)
     plt.close(fig)
 
-# 4. Aggregated results
 
-def save_results(results, out_dir):
-    df = pd.DataFrame(results)
-    os.makedirs(out_dir, exist_ok=True)
-    csv_path = os.path.join(out_dir, 'summary.csv')
-    df.to_csv(csv_path, index=False)
-    for metric in ['Accuracy', 'Precision', 'Recall', 'F1', 'AUC']:
-        fig, ax = plt.subplots()
-        ax.bar(df['Model'] + '_' + df['Target'], df[metric])
-        plt.xticks(rotation=45)
-        plt.title(metric)
-        plt.savefig(os.path.join(out_dir, f"{metric.lower()}_comp.png"))
+# ======================================================
+# 5. Save and plot comparison metrics
+# ======================================================
+
+def save_and_plot_results(all_results, results_dir):
+    """
+    Save aggregated metrics and generate bar plots for comparison.
+
+    all_results is expected to be a list of dicts, each with at least:
+    - 'Model', 'Target', 'Accuracy', 'Precision', 'Recall', 'F1 Score', 'AUC-ROC'
+    """
+    os.makedirs(results_dir, exist_ok=True)
+
+    df = pd.DataFrame(all_results)
+    df.to_csv(os.path.join(results_dir, 'all_results.csv'), index=False)
+
+    metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'AUC-ROC']
+    labels = df['Model'] + ' (' + df['Target'] + ')'
+    x = np.arange(len(df))
+
+    for metric in metrics:
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.bar(x, df[metric])
+        ax.set(
+            xticks=x,
+            xticklabels=labels,
+            ylabel=metric,
+            ylim=(0, 1),
+            title=f'{metric} Comparison'
+        )
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+
+        base = os.path.join(results_dir, f'{metric}_comparison.png')
+        plt.savefig(base, dpi=300)
+
+        # Save without title
+        ax.set_title("")
+        plt.savefig(base.replace('.png', '_notitle.png'), dpi=300)
         plt.close(fig)
 
-# 5. Model configurations
 
-def get_configs():
+# ======================================================
+# 6. Helper to extract evals_result from XGBoost / LightGBM
+# ======================================================
+
+def get_evals_result(model):
+    """
+    Return training/validation logs from supported models.
+
+    - XGBClassifier: model.evals_result()
+    - LGBMClassifier: model.evals_result_
+    """
+    if isinstance(model, XGBClassifier):
+        return model.evals_result()
+    elif isinstance(model, LGBMClassifier):
+        return model.evals_result_
+    else:
+        raise AttributeError(f"Model {type(model)} does not support evals_result")
+
+
+# ======================================================
+# 7. Evaluation with repeated subsampling
+# ======================================================
+
+def evaluate_model(model, X_test, y_test, model_name, save_dir,
+                   n_iterations=100, max_samples_per_class=100):
+    """
+    Evaluate a model using repeated subsampling of the test set.
+
+    For each iteration:
+    - Sample up to max_samples_per_class instances per class from y_test.
+    - Compute metrics and confusion matrix on this subsample.
+    - Average metrics over all iterations and sum confusion matrices.
+
+    This gives a smoother estimate of performance when classes are imbalanced
+    or the test set is large.
+    """
+    try:
+        # Ensure X_test is a DataFrame with column names
+        if not isinstance(X_test, pd.DataFrame):
+            X_test = pd.DataFrame(X_test, columns=getattr(model, 'feature_names_in_', None))
+
+        labels = np.unique(y_test)
+        n_classes = len(labels)
+        cm_accum = np.zeros((n_classes, n_classes))
+
+        acc = prec = rec = f1 = auc_sum = 0.0
+
+        for _ in range(n_iterations):
+            idxs = []
+            for lbl in labels:
+                inds = np.where(y_test == lbl)[0]
+                size = min(max_samples_per_class, len(inds))
+                idxs.extend(
+                    np.random.choice(inds, size=size, replace=len(inds) < size)
+                )
+
+            Xt = X_test.iloc[idxs]
+            yt = y_test.iloc[idxs]
+
+            y_pred = model.predict(Xt)
+            y_proba = model.predict_proba(Xt) if hasattr(model, 'predict_proba') else None
+
+            acc += accuracy_score(yt, y_pred)
+            prec += precision_score(yt, y_pred, average='weighted', zero_division=0)
+            rec += recall_score(yt, y_pred, average='weighted', zero_division=0)
+            f1 += f1_score(yt, y_pred, average='weighted', zero_division=0)
+
+            if y_proba is not None:
+                auc_sum += roc_auc_score(yt, y_proba, multi_class='ovr')
+
+            cm_accum += confusion_matrix(yt, y_pred, labels=labels)
+
+        metrics = {
+            'Accuracy': acc / n_iterations,
+            'Precision': prec / n_iterations,
+            'Recall': rec / n_iterations,
+            'F1 Score': f1 / n_iterations,
+            'AUC-ROC': (auc_sum / n_iterations) if hasattr(model, 'predict_proba') else np.nan
+        }
+
+        os.makedirs(save_dir, exist_ok=True)
+        pd.DataFrame([metrics]).to_csv(
+            os.path.join(save_dir, f'{model_name}_metrics.csv'),
+            index=False
+        )
+
+        # Plot confusion matrices with multiple colormaps
+        cm_dir = os.path.join(save_dir, 'confusion_matrices')
+        project_name = os.path.basename(save_dir)
+        plot_confusion_matrix(
+            cm_accum,
+            classes=labels,
+            model_name=model_name,
+            save_dir=cm_dir,
+            project_name=project_name,
+            cmaps_for_type={
+                'imshow': ['Oranges', 'Reds', 'Purples', 'Greys'],
+                'heatmap': ['Blues', 'Greens', 'YlGnBu', 'PuRd']
+            }
+        )
+
+        return metrics
+
+    except Exception as e:
+        print(f"Error in evaluate_model({model_name}): {e}")
+        traceback.print_exc()
+        return None
+
+
+# ======================================================
+# 8. Model hyperparameter configuration (example)
+# ======================================================
+
+def get_model_config():
+    """
+    Example hyperparameter configuration for several models.
+
+    You should adjust these parameters to your own dataset and task.
+    """
     return {
-        'xgb': {'n_estimators':100, 'max_depth':5, 'learning_rate':0.1, 'random_state':0},
-        'lgb': {'n_estimators':100, 'num_leaves':31, 'learning_rate':0.1, 'random_state':0},
-        'rf':  {'n_estimators':100, 'max_depth':10, 'random_state':0},
-        'gb':  {'n_estimators':100, 'max_depth':5, 'random_state':0},
-        'ada': {'n_estimators':100, 'learning_rate':0.1, 'random_state':0},
-        'svc': {'kernel':'rbf', 'probability':True},
-        'knn': {'n_neighbors':5},
-        'mlp': {'hidden_layer_sizes':(100,), 'max_iter':500, 'random_state':0}
+        'XGBoost': {
+            'n_estimators': 200,
+            'learning_rate': 0.1,
+            'max_depth': 6,
+            'objective': 'multi:softprob',
+            'random_state': 42,
+            'eval_metric': 'mlogloss'
+        },
+        'LightGBM': {
+            'n_estimators': 200,
+            'learning_rate': 0.05,
+            'num_leaves': 64,
+            'max_depth': 6,
+            'random_state': 42,
+            'metric': 'multi_logloss'
+        },
+        'RandomForest': {
+            'n_estimators': 200,
+            'max_depth': 12,
+            'random_state': 42
+        },
+        'GradientBoosting': {
+            'n_estimators': 200,
+            'learning_rate': 0.1,
+            'max_depth': 6,
+            'random_state': 42
+        },
+        'AdaBoost': {
+            'n_estimators': 200,
+            'learning_rate': 0.1,
+            'random_state': 42
+        },
+        'SVM': {
+            'kernel': 'rbf',
+            'probability': True,
+            'class_weight': 'balanced',
+            'random_state': 42
+        },
+        'KNN': {
+            'n_neighbors': 7,
+            'weights': 'distance'
+        },
+        'NeuralNetwork': {
+            'hidden_layer_sizes': (200, 100),
+            'max_iter': 1000,
+            'random_state': 42
+        }
     }
 
-# 6. Evaluation loop
 
-def evaluate(model, X, y, name, out_dir, iters=50):
-    try:
-        acc=prec=rec=f1=roc_auc=0
-        cm_sum = np.zeros((len(np.unique(y)),)*2)
-        for _ in range(iters):
-            idx = np.random.choice(len(y), size=min(200,len(y)), replace=False)
-            Xt, yt = X.iloc[idx], y.iloc[idx]
-            pred = model.predict(Xt)
-            prob = model.predict_proba(Xt)
-            acc += accuracy_score(yt,pred)
-            prec += precision_score(yt,pred,average='weighted', zero_division=0)
-            rec += recall_score(yt,pred,average='weighted', zero_division=0)
-            f1 += f1_score(yt,pred,average='weighted', zero_division=0)
-            roc_auc += roc_auc_score(yt, prob, multi_class='ovr')
-            cm_sum += confusion_matrix(yt,pred)
-        n=iters
-        metrics = {
-            'Accuracy':acc/n,
-            'Precision':prec/n,
-            'Recall':rec/n,
-            'F1':f1/n,
-            'AUC':roc_auc/n
-        }
-        pd.DataFrame([metrics]).to_csv(os.path.join(out_dir,f"{name}_metrics.csv"), index=False)
-        plot_conf_matrix(cm_sum, np.unique(y), name, os.path.join(out_dir,'cms'))
-        return metrics
-    except Exception:
-        traceback.print_exc()
-        return {}
-
-# 7. Main workflow
+# ======================================================
+# 9. Main workflow (example)
+# ======================================================
 
 def main():
-    data_path = os.getenv('DATA_PATH', '/path/to/data.csv')
-    df = pd.read_csv(data_path)
+    """
+    Example main function that:
+    - Loads data
+    - Preprocesses features
+    - Balances the training set
+    - Trains multiple models on multiple targets
+    - Evaluates and logs results
+    """
 
-    # placeholder lists
-    categorical = []  # fill in categorical column names
-    continuous = []   # fill in continuous column names
-    targets = []      # fill in target column names
+    # ------------------ 9.1 Configuration (example only) ------------------ #
 
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    base_dir = os.getenv('RESULTS_DIR', f'output_{timestamp}')
-    os.makedirs(base_dir, exist_ok=True)
+    config = {
+        'data_path': r"PATH_TO_YOUR_DATA.csv",   # TODO: replace with your CSV
+        'feature_config': {
+            'categorical': [
+                # "cat_feature_1", "cat_feature_2", ...
+            ],
+            'continuous': [
+                # "cont_feature_1", "cont_feature_2", ...
+            ]
+        },
+        'classification_targets': [
+            # "target_1", "target_2", ...
+        ]
+    }
 
-    configs = get_configs()
+    # Load data
+    data = pd.read_csv(config['data_path'])
+    print(f"Original data shape: {data.shape}")
+
+    # Create output directories with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_dir = f'results_{timestamp}'
+    logs_dir = os.path.join(results_dir, 'logs')
+    os.makedirs(logs_dir, exist_ok=True)
+
+    # Prepare models
+    model_configs = get_model_config()
     models = {
-        'xgb': XGBClassifier(**configs['xgb']),
-        'lgb': LGBMClassifier(**configs['lgb']),
-        'rf':  RandomForestClassifier(**configs['rf']),
-        'gb':  GradientBoostingClassifier(**configs['gb']),
-        'ada': AdaBoostClassifier(**configs['ada']),
-        'svc': SVC(**configs['svc']),
-        'knn': KNeighborsClassifier(**configs['knn']),
-        'mlp': MLPClassifier(**configs['mlp']),
+        'XGBoost': XGBClassifier(**model_configs['XGBoost']),
+        'LightGBM': LGBMClassifier(**model_configs['LightGBM']),
+        'RandomForest': RandomForestClassifier(**model_configs['RandomForest']),
+        'GradientBoosting': GradientBoostingClassifier(**model_configs['GradientBoosting']),
+        'AdaBoost': AdaBoostClassifier(**model_configs['AdaBoost']),
+        'SVM': SVC(**model_configs['SVM']),
+        'KNN': KNeighborsClassifier(**model_configs['KNN']),
+        'NeuralNetwork': MLPClassifier(**model_configs['NeuralNetwork']),
     }
 
     pre = DataPreprocessor()
     all_results = []
 
-    for target in targets:
-        out_dir = os.path.join(base_dir, target)
-        os.makedirs(out_dir, exist_ok=True)
-        X = df[categorical + continuous].copy()
-        y = df[target].copy()
-        X, y = pre.drop_na(X, y)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y, random_state=0)
-        X_train = pre.transform(X_train, categorical, continuous, fit=True)
-        X_test  = pre.transform(X_test,  categorical, continuous, fit=False)
-        Xb, yb = pre.balance(X_train, y_train)
+    # ------------------ 9.2 Loop over target variables ------------------ #
+
+    for target in config['classification_targets']:
+        target_dir = os.path.join(results_dir, target)
+        os.makedirs(target_dir, exist_ok=True)
+
+        features = (
+            config['feature_config']['categorical'] +
+            config['feature_config']['continuous']
+        )
+
+        X = data[features].copy()
+        y = data[target].copy()
+
+        # Remove rows with missing values in features or target
+        X, y = pre.remove_missing_values(X, y)
+
+        # Split into train / test
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y,
+            test_size=0.3,
+            random_state=42,
+            stratify=y
+        )
+
+        # Fit encoders/scaler on train, apply to both train and test
+        X_train = pre.preprocess(
+            X_train,
+            config['feature_config']['categorical'],
+            config['feature_config']['continuous'],
+            fit=True
+        )
+        X_test = pre.preprocess(
+            X_test,
+            config['feature_config']['categorical'],
+            config['feature_config']['continuous'],
+            fit=False
+        )
+
+        # Balance training data (optional, you can skip if not desired)
+        Xb, yb = pre.balance_dataset(X_train, y_train, n_samples_per_class=1000)
+
+        # ------------------ 9.3 Train and evaluate each model ------------------ #
 
         for name, model in models.items():
+            print(f"\nTraining {name} on target '{target}' ...")
+
             try:
-                if hasattr(model, 'fit'):  # tree-based with eval
-                    if name in ['xgb', 'lgb']:
-                        model.fit(Xb, yb, eval_set=[(Xb,yb),(X_test,y_test)], verbose=False,
-                                  callbacks=[early_stopping(stopping_rounds=10), log_evaluation(period=0)] if name=='lgb' else None)
-                    else:
-                        model.fit(Xb, yb)
-                joblib.dump(model, os.path.join(out_dir, f"{name}.joblib"))
-                metrics = evaluate(model, X_test, y_test, name, out_dir)
-                if metrics:
-                    metrics.update({'Model':name, 'Target':target})
+                # Some models support eval_set / early stopping (XGBoost / LightGBM)
+                if name == 'XGBoost':
+                    model.fit(
+                        Xb, yb,
+                        eval_set=[(Xb, yb), (X_test, y_test)],
+                        verbose=False
+                    )
+                elif name == 'LightGBM':
+                    model.fit(
+                        Xb, yb,
+                        eval_set=[(Xb, yb), (X_test, y_test)],
+                        eval_metric='multi_logloss',
+                        callbacks=[
+                            lgb.early_stopping(stopping_rounds=10),
+                            lgb.log_evaluation(period=0)
+                        ]
+                    )
+                else:
+                    model.fit(Xb, yb)
+
+                # Save training logs for models that support evals_result
+                if name in ['XGBoost', 'LightGBM']:
+                    evals = get_evals_result(model)
+                    if name == 'XGBoost':
+                        # eval_set: [(train, train), (test, test)]
+                        # 'validation_1' corresponds to the test set
+                        if 'validation_1' in evals:
+                            df_log = pd.DataFrame(evals['validation_1'])
+                        else:
+                            df_log = pd.DataFrame()
+                    else:  # LightGBM
+                        # LGBMClassifier.evals_result_ structure:
+                        # {"training": {...}, "valid_1": {...}, ...}
+                        val_keys = [k for k in evals.keys() if k != 'training']
+                        df_log = pd.DataFrame(evals[val_keys[0]]) if val_keys else pd.DataFrame()
+
+                    log_path = os.path.join(logs_dir, f"train_log_{name}_{target}.csv")
+                    df_log.to_csv(log_path, index=False)
+
+                # Save trained model
+                model_path = os.path.join(target_dir, f"{name}.joblib")
+                joblib.dump(model, model_path)
+
+                # Evaluate model with repeated subsampling
+                metrics = evaluate_model(model, X_test, y_test, name, target_dir)
+                if metrics is not None:
+                    metrics.update({'Model': name, 'Target': target})
                     all_results.append(metrics)
-                plot_roc(model, X_test, y_test, name, out_dir)
-            except Exception:
+
+                # Plot ROC curves (if supported)
+                plot_roc_curves(model, X_test, y_test, name, target_dir)
+
+            except Exception as e:
+                print(f"{name} failed on target '{target}': {e}")
                 traceback.print_exc()
 
-    if all_results:
-        save_results(all_results, base_dir)
+    # ------------------ 9.4 Save global comparison ------------------ #
 
-if __name__ == '__main__':
+    if all_results:
+        save_and_plot_results(all_results, results_dir)
+
+
+if __name__ == "__main__":
+    # This is an example template. To actually run it, fill in:
+    # - config['data_path']
+    # - config['feature_config']['categorical'] / ['continuous']
+    # - config['classification_targets']
     main()
