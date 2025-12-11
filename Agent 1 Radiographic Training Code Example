@@ -1,47 +1,85 @@
 import os
 import copy
 import time
+import json
+from typing import Dict, Tuple, Any
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+
 from torchvision import transforms, datasets, models
 from torch.utils.data import DataLoader, Subset
-from sklearn.model_selection import KFold
+
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.preprocessing import label_binarize
 
+
 # -------------------------
-# Global settings (font, figure size, etc.)
+# Global Matplotlib settings
 # -------------------------
 plt.rcParams['font.family'] = 'Arial'
 plt.rcParams.update({'font.size': 14})
 
+
 # -------------------------
-# Windowing transform (e.g., for medical images)
+# Utility: Set random seed
+# -------------------------
+def set_seed(seed: int = 42):
+    """Set random seed for reproducibility (Python, NumPy, PyTorch)."""
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    # Deterministic behavior (slower but reproducible)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+# -------------------------
+# Windowing transform (for medical images)
 # -------------------------
 class WindowingTransform:
-    def __init__(self, center=100, width=400):
-        # Store parameters
+    """
+    Apply window center/width normalization:
+    - Converts input PIL image to numpy array
+    - Clips values to [center - width/2, center + width/2]
+    - Normalizes to [0, 1]
+    - Converts grayscale to 3-channel if needed
+    - Returns torch tensor in CHW format
+    """
+
+    def __init__(self, center: float = 100.0, width: float = 400.0):
         self.min_val = center - width / 2
         self.max_val = center + width / 2
 
     def __call__(self, img):
-        # Convert to array, clip, normalize and convert back to tensor
         arr = np.array(img).astype(np.float32)
         arr = np.clip(arr, self.min_val, self.max_val)
-        arr = (arr - self.min_val) / (self.max_val - self.min_val)
+        arr = (arr - self.min_val) / (self.max_val - self.min_val + 1e-8)
+
+        # Expand grayscale to 3 channels
         if arr.ndim == 2:
             arr = np.stack([arr] * 3, axis=-1)
-        return torch.from_numpy(arr.transpose(2, 0, 1))
+
+        return torch.from_numpy(arr.transpose(2, 0, 1))  # HWC → CHW
+
 
 # -------------------------
 # Early stopping utility
 # -------------------------
 class EarlyStopper:
-    def __init__(self, patience=10, min_delta=1e-6):
-        # Initialize counters and thresholds
+    """
+    Monitors validation loss and stops training when no improvement is seen
+    for a given patience.
+    """
+
+    def __init__(self, patience: int = 10, min_delta: float = 1e-3):
         self.patience = patience
         self.min_delta = min_delta
         self.best_loss = float('inf')
@@ -49,8 +87,8 @@ class EarlyStopper:
         self.best_weights = None
         self.should_stop = False
 
-    def __call__(self, val_loss, model):
-        # Compare validation loss to best, update or increment counter
+    def __call__(self, val_loss: float, model: nn.Module):
+        """Update best model state or increase patience counter."""
         if val_loss + self.min_delta < self.best_loss:
             self.best_loss = val_loss
             self.best_weights = copy.deepcopy(model.state_dict())
@@ -60,156 +98,313 @@ class EarlyStopper:
             if self.counter >= self.patience:
                 self.should_stop = True
 
+
 # -------------------------
-# Training loop
+# Model builder (easy to swap architectures)
+# -------------------------
+def build_model(num_classes: int, pretrained: bool = True) -> nn.Module:
+    """
+    Builds a ResNet50 classifier.
+    Replaces final fully connected layer with custom num_classes output.
+    """
+    weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
+    model = models.resnet50(weights=weights)
+    model.fc = nn.Linear(model.fc.in_features, num_classes)
+    return model
+
+
+# -------------------------
+# Training loop with AMP + EarlyStopping
 # -------------------------
 def train_model(
-    model,
-    dataloaders,
-    criterion,
-    optimizer,
-    scheduler,
-    num_epochs=25,
-    patience=5,
-    device='cpu'
-):
-    history = {'train_loss': [], 'val_loss': [], 'train_acc': [], 'val_acc': []}
+    model: nn.Module,
+    dataloaders: Dict[str, DataLoader],
+    criterion: nn.Module,
+    optimizer: optim.Optimizer,
+    scheduler: Any = None,
+    num_epochs: int = 25,
+    patience: int = 5,
+    device: torch.device = torch.device('cpu'),
+    use_amp: bool = True,
+) -> Tuple[nn.Module, Dict[str, list]]:
+    """
+    Full training loop:
+    - Runs train + validation phases
+    - Applies AMP (automatic mixed precision) on CUDA
+    - Applies early stopping on validation loss
+    - Optionally updates learning rate scheduler
+
+    Returns:
+    - model with best weights restored
+    - training history (loss & accuracy curves)
+    """
+    history = {
+        'train_loss': [],
+        'val_loss': [],
+        'train_acc': [],
+        'val_acc': [],
+    }
+
     stopper = EarlyStopper(patience=patience)
     best_acc = 0.0
 
+    use_amp = use_amp and (device.type == 'cuda')
+    scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
+
     for epoch in range(num_epochs):
+        print(f"\nEpoch {epoch + 1}/{num_epochs}")
+        print("-" * 20)
+
         for phase in ['train', 'val']:
             model.train() if phase == 'train' else model.eval()
+
             running_loss = 0.0
-            running_correct = 0
+            running_corrects = 0
             total_samples = 0
 
             for inputs, labels in dataloaders[phase]:
-                inputs, labels = inputs.to(device), labels.to(device)
-                optimizer.zero_grad()
-                with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
-                    loss = criterion(outputs, labels)
-                    preds = outputs.argmax(dim=1)
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
-                running_loss += loss.item() * inputs.size(0)
-                running_correct += (preds == labels).sum().item()
-                total_samples += inputs.size(0)
+                inputs = inputs.to(device, non_blocking=True)
+                labels = labels.to(device, non_blocking=True)
 
+                if phase == 'train':
+                    optimizer.zero_grad()
+
+                with torch.set_grad_enabled(phase == 'train'):
+                    with torch.cuda.amp.autocast(enabled=use_amp):
+                        outputs = model(inputs)
+                        loss = criterion(outputs, labels)
+
+                    preds = outputs.argmax(dim=1)
+
+                    if phase == 'train':
+                        scaler.scale(loss).backward()
+                        scaler.step(optimizer)
+                        scaler.update()
+
+                # Update metrics
+                batch_size = inputs.size(0)
+                running_loss += loss.item() * batch_size
+                running_corrects += (preds == labels).sum().item()
+                total_samples += batch_size
+
+            # Epoch results
             epoch_loss = running_loss / total_samples
-            epoch_acc = running_correct / total_samples
+            epoch_acc = running_corrects / total_samples
+
             history[f'{phase}_loss'].append(epoch_loss)
             history[f'{phase}_acc'].append(epoch_acc)
 
+            print(f"{phase} Loss: {epoch_loss:.4f}  Acc: {epoch_acc:.4f}")
+
+            # Validation: check early stopping
             if phase == 'val':
                 stopper(epoch_loss, model)
                 if epoch_acc > best_acc:
                     best_acc = epoch_acc
+
+                if scheduler and isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+                    scheduler.step(epoch_loss)
+
                 if stopper.should_stop:
+                    print(f"Early stopping triggered. Best val loss: {stopper.best_loss:.4f}")
                     model.load_state_dict(stopper.best_weights)
                     return model, history
-            else:
-                scheduler.step()
+
+        # LR scheduler that updates every epoch
+        if scheduler and not isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+            scheduler.step()
+
+    if stopper.best_weights is not None:
+        model.load_state_dict(stopper.best_weights)
 
     return model, history
+
 
 # -------------------------
 # Evaluation function
 # -------------------------
-def evaluate_model(model, dataloader, device='cpu'):
+def evaluate_model(model: nn.Module, dataloader: DataLoader, device: torch.device):
+    """
+    Runs inference on a dataloader and returns:
+    - true_labels: numpy array [N]
+    - predictions: numpy array [N]
+    - probabilities: numpy array [N, num_classes]
+    """
     model.eval()
     true_labels = []
     predictions = []
     probabilities = []
+
     with torch.no_grad():
         for inputs, labels in dataloader:
-            inputs = inputs.to(device)
+            inputs = inputs.to(device, non_blocking=True)
+            labels = labels.to(device, non_blocking=True)
+
             outputs = model(inputs)
             probs = torch.softmax(outputs, dim=1)
             preds = outputs.argmax(dim=1)
+
             true_labels.extend(labels.cpu().tolist())
             predictions.extend(preds.cpu().tolist())
             probabilities.extend(probs.cpu().numpy())
+
     return np.array(true_labels), np.array(predictions), np.array(probabilities)
 
+
 # -------------------------
-# Main execution
+# Create DataLoaders for a fold (fixes Subset transform bug)
+# -------------------------
+def create_dataloaders_for_fold(
+    root: str,
+    transforms_cfg: Dict[str, transforms.Compose],
+    train_idx: np.ndarray,
+    val_idx: np.ndarray,
+    batch_size: int,
+    device: torch.device,
+):
+    """
+    Creates DataLoaders for one fold.
+    Important design:
+    - Train and validation datasets use SEPARATE ImageFolder instances,
+      avoiding transform overriding issues inside Subset.
+    """
+    train_full = datasets.ImageFolder(root, transform=transforms_cfg['train'])
+    val_full = datasets.ImageFolder(root, transform=transforms_cfg['val'])
+
+    num_classes = len(train_full.classes)
+
+    train_ds = Subset(train_full, train_idx)
+    val_ds = Subset(val_full, val_idx)
+
+    num_workers = 4
+    pin_memory = (device.type == 'cuda')
+
+    loaders = {
+        'train': DataLoader(train_ds, batch_size=batch_size, shuffle=True,
+                            num_workers=num_workers, pin_memory=pin_memory),
+        'val': DataLoader(val_ds, batch_size=batch_size, shuffle=False,
+                          num_workers=num_workers, pin_memory=pin_memory),
+    }
+
+    return loaders, num_classes
+
+
+# -------------------------
+# Main: iterate through tasks and perform 5-fold cross-validation
 # -------------------------
 def main():
-    # Use environment variables or defaults for paths
+    config = {
+        "seed": 42,
+        "batch_size": 32,
+        "lr": 1e-5,
+        "num_epochs": 50,
+        "patience": 10,
+        "use_pretrained": True,
+        "use_amp": True,
+        "n_splits": 5,
+    }
+
+    set_seed(config["seed"])
+
     root_dir = os.getenv('DATA_ROOT', '/path/to/data')
     results_dir = os.getenv('RESULTS_ROOT', '/path/to/results')
     os.makedirs(results_dir, exist_ok=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
 
+    # -------------------------
     # Define transforms
+    # -------------------------
     transforms_cfg = {
         'train': transforms.Compose([
             transforms.Resize((256, 256)),
             transforms.RandomCrop(224),
             transforms.RandomHorizontalFlip(),
-            WindowingTransform(),
+            WindowingTransform(center=100, width=400),
             transforms.Normalize([0.5] * 3, [0.5] * 3),
         ]),
         'val': transforms.Compose([
             transforms.Resize((256, 256)),
             transforms.CenterCrop(224),
-            WindowingTransform(),
+            WindowingTransform(center=100, width=400),
             transforms.Normalize([0.5] * 3, [0.5] * 3),
         ]),
     }
 
-    # Iterate over tasks/datasets
+    # -------------------------
+    # Iterate through tasks
+    # -------------------------
     for task_name in os.listdir(root_dir):
         task_path = os.path.join(root_dir, task_name)
         if not os.path.isdir(task_path):
             continue
 
-        # Prepare output folder per task
+        print(f"\n===== Task: {task_name} =====")
+
         task_out = os.path.join(results_dir, task_name)
         os.makedirs(task_out, exist_ok=True)
 
-        # Load full dataset and get number of classes
-        full_ds = datasets.ImageFolder(task_path, transform=transforms_cfg['train'])
+        full_ds = datasets.ImageFolder(task_path, transform=None)
+        num_samples = len(full_ds)
         num_classes = len(full_ds.classes)
 
-        # 5-fold cross-validation
-        kfold = KFold(n_splits=5, shuffle=True, random_state=42)
-        for fold_idx, (train_idx, val_idx) in enumerate(kfold.split(full_ds)):
-            # Create subsets and dataloaders
-            train_ds = Subset(full_ds, train_idx)
-            val_ds = Subset(full_ds, val_idx)
-            train_ds.dataset.transform = transforms_cfg['train']
-            val_ds.dataset.transform = transforms_cfg['val']
-            loaders = {
-                'train': DataLoader(train_ds, batch_size=32, shuffle=True),
-                'val': DataLoader(val_ds, batch_size=32, shuffle=False),
-            }
+        print(f"Dataset size: {num_samples}, Classes: {num_classes}")
 
-            # Initialize model and replace final layer
-            model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-            model.fc = nn.Linear(model.fc.in_features, num_classes)
-            model.to(device)
+        targets = full_ds.targets
+        skf = StratifiedKFold(
+            n_splits=config["n_splits"], shuffle=True, random_state=config["seed"]
+        )
 
-            # Define loss, optimizer, and scheduler
-            criterion = nn.CrossEntropyLoss()
-            optimizer = optim.Adam(model.parameters(), lr=1e-5)
-            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+        all_fold_metrics = []
 
-            # Train and evaluate
-            trained_model, history = train_model(
-                model, loaders, criterion, optimizer, scheduler,
-                num_epochs=50, patience=10, device=device
+        # -------------------------
+        # 5-fold loop
+        # -------------------------
+        for fold_idx, (train_idx, val_idx) in enumerate(
+            skf.split(np.arange(len(full_ds)), targets)
+        ):
+            print(f"\n--- Fold {fold_idx + 1}/{config['n_splits']} ---")
+
+            loaders, num_classes_fold = create_dataloaders_for_fold(
+                task_path, transforms_cfg, train_idx, val_idx,
+                config["batch_size"], device
             )
 
-            # Save model and metrics (paths are placeholders)
-            model_path = os.path.join(task_out, f"model_fold{fold_idx+1}.pth")
-            torch.save(trained_model.state_dict(), model_path)
+            model = build_model(num_classes, pretrained=config["use_pretrained"]).to(device)
 
-            # (Plotting and analysis steps would follow, using generic save paths)
+            criterion = nn.CrossEntropyLoss()
+            optimizer = optim.Adam(model.parameters(), lr=config["lr"])
+            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
-if __name__ == '__main__':
+            start_time = time.time()
+            model, history = train_model(
+                model, loaders, criterion, optimizer, scheduler,
+                num_epochs=config["num_epochs"], patience=config["patience"],
+                device=device, use_amp=config["use_amp"]
+            )
+            elapsed = time.time() - start_time
+            print(f"Fold {fold_idx + 1} completed in {elapsed:.1f}s")
+
+            # Save model
+            torch.save(model.state_dict(),
+                       os.path.join(task_out, f"model_fold{fold_idx + 1}.pth"))
+
+            # Save training history
+            with open(os.path.join(task_out, f"history_fold{fold_idx + 1}.json"), 'w') as f:
+                json.dump(history, f)
+
+            # Evaluate model
+            y_true, y_pred, y_prob = evaluate_model(model, loaders['val'], device)
+            acc = (y_true == y_pred).mean()
+            print(f"Fold {fold_idx + 1} final val accuracy: {acc:.4f}")
+
+            all_fold_metrics.append({"fold": fold_idx + 1, "val_acc": float(acc)})
+
+        # Save cross-validation metrics
+        with open(os.path.join(task_out, "cv_metrics.json"), 'w') as f:
+            json.dump(all_fold_metrics, f, indent=2)
+
+
+if __name__ == "__main__":
     main()
