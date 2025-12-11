@@ -1,160 +1,629 @@
+# -*- coding: utf-8 -*-
+"""
+Key design ideas:
+1) Every figure explicitly shows "Model + Target" in the title and a small note box.
+2) All figures are single-axis, single-image (no subplot grids).
+3) For comparisons: one figure per (target × metric × plot_type), saved under 'plots'.
+4) Training: use KFold; for XGBoost / LightGBM, use early stopping.
+5) Saving: metrics, logs, best models, and feature importance are written to disk
+   with filenames that contain both model and target names.
+"""
+
 import os
 from datetime import datetime
+import warnings
 
 import numpy as np
 import pandas as pd
+import joblib
+
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy import stats
-from sklearn.model_selection import KFold, train_test_split
+
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, permutation_importance
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sklearn.inspection import permutation_importance
+from scipy import stats
+
+import xgboost as xgb
+import lightgbm as lgb
+
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.svm import SVR
 from sklearn.linear_model import ElasticNet
-from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
-import joblib
 
-class RegressionPipeline:
-    def __init__(self, cfg, output_dir=None):
-        self.cfg = cfg
-        self.results = []
-        self.best_models = {}
-        self.importances = pd.DataFrame()
-        self.preds = {}
-        # Plot style
-        self._set_style()
-        # Output directories
-        self.out_root = output_dir or self._make_dir('regression_outputs')
-        for sub in ['plots', 'models', 'logs', 'results']:
-            os.makedirs(os.path.join(self.out_root, sub), exist_ok=True)
-        self.plots_dir = os.path.join(self.out_root, 'plots')
-        self.models_dir = os.path.join(self.out_root, 'models')
-        self.logs_dir = os.path.join(self.out_root, 'logs')
-        self.results_dir = os.path.join(self.out_root, 'results')
 
-    def _set_style(self):
-        sns.set(style='whitegrid')
+class ModelTrainer:
+    """
+    A generic trainer for multiple regression models and multiple targets.
+
+    It supports:
+    - Data loading and preprocessing (encoding categories).
+    - Model training with K-fold CV and early stopping (for tree boosters).
+    - Metrics logging for each fold.
+    - Feature importance analysis (built-in importance or permutation).
+    - Several plots: metric comparison, scatter plots, residual plots.
+    """
+
+    def __init__(self, config, output_dir=None):
+        self.config = config
+        self.palette = config.get('palette', {})
+        self.results = []              # list of DataFrames with fold metrics
+        self.feature_importances = pd.DataFrame()
+        self.best_models = {}          # key: f"{model}_{target}" -> fitted Pipeline or estimator
+        self.predictions = {}          # key: f"{model}_{target}" -> {'true': [...], 'pred': [...]}
+        self.training_logs = {}        # key: f"{model}_{target}" -> DataFrame
+        self.data = None               # preprocessed data (encoded categories, no scaling)
+
+        self._set_plot_style()
+        self.output_dir = output_dir or self._create_output_directory()
+        os.makedirs(self.output_dir, exist_ok=True)
+        for sub in ['plots', 'models', 'results', 'logs']:
+            os.makedirs(os.path.join(self.output_dir, sub), exist_ok=True)
+
+        self.plots_dir = os.path.join(self.output_dir, 'plots')
+        self.models_dir = os.path.join(self.output_dir, 'models')
+        self.results_dir = os.path.join(self.output_dir, 'results')
+        self.logs_dir = os.path.join(self.output_dir, 'logs')
+
+        warnings.filterwarnings("ignore")
+
+    # ------------------------- utilities -------------------------
+
+    def _set_plot_style(self):
+        """Set a simple, journal-like plot style."""
+        colors = ['#D35400', '#E67E22', '#F39C12', '#FF8C00', '#FFA07A']
+        sns.set_palette(colors)
         plt.rcParams.update({
             'figure.dpi': 300,
             'savefig.dpi': 300,
-            'font.family': 'sans-serif',
+            'font.family': 'Arial',
+            'font.weight': 'bold',
             'font.size': 10,
+            'axes.linewidth': 1.0,
+            'axes.labelweight': 'bold',
+            'xtick.direction': 'in',
+            'ytick.direction': 'in',
+            'grid.linestyle': '--',
+            'grid.color': '#DDDDDD',
+            'grid.linewidth': 0.8,
+            'legend.frameon': False,
+            'savefig.bbox': 'tight',
         })
 
-    def _make_dir(self, base):
+    def _create_output_directory(self):
+        """Create an output directory with a timestamp."""
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-        path = os.path.join(base, ts)
-        os.makedirs(path, exist_ok=True)
-        return path
+        return os.path.join('model_outputs', ts)
 
-    def load_and_clean(self):
-        # Load data and drop missing
-        df = pd.read_csv(self.cfg['data_path'])
-        cols = self.cfg['features'] + self.cfg['targets']
-        return df.dropna(subset=cols)
+    def _save_fig(self, fig, tag):
+        """Save a figure as both PDF and PNG, then close it."""
+        pdf_path = os.path.join(self.plots_dir, f"{tag}.pdf")
+        png_path = os.path.join(self.plots_dir, f"{tag}.png")
+        fig.savefig(pdf_path, bbox_inches='tight')
+        fig.savefig(png_path, bbox_inches='tight')
+        plt.close(fig)
 
-    def preprocess(self, df):
-        # Encode categoricals and scale continuous
-        if 'categorical' in self.cfg:
-            for c in self.cfg['categorical']:
-                df[c] = pd.Categorical(df[c]).codes
-        scaler = StandardScaler()
-        cont = self.cfg.get('continuous', [])
-        if cont:
-            df[cont] = scaler.fit_transform(df[cont])
+    @staticmethod
+    def _safe_pearson(y_true, y_pred):
+        """Safely compute Pearson correlation, returning NaN on failure."""
+        try:
+            return float(stats.pearsonr(y_true, y_pred)[0])
+        except Exception:
+            return np.nan
+
+    def _ax_topleft_note(self, ax, model=None, target=None, extra_lines=None):
+        """
+        Add a small note box to the top-left corner of the axis.
+
+        It can show model name, target name, and optional extra lines.
+        """
+        lines = []
+        if model is not None:
+            lines.append(f"Model: {model}")
+        if target is not None:
+            lines.append(f"Target: {target}")
+        if extra_lines:
+            lines.extend(extra_lines)
+        txt = "\n".join(lines)
+        ax.text(
+            0.01, 0.99, txt,
+            transform=ax.transAxes,
+            va='top', ha='left',
+            fontsize=9, fontweight='bold',
+            bbox=dict(
+                boxstyle='round,pad=0.3',
+                facecolor='white',
+                alpha=0.6,
+                edgecolor='none'
+            )
+        )
+
+    # ------------------------- data IO -------------------------
+
+    def load_data(self):
+        """
+        Load data from CSV and drop rows with missing values in
+        required feature and target columns.
+        """
+        print("Loading data...")
+        df = pd.read_csv(self.config['data_path'])
+
+        cols_needed = (
+            self.config['feature_config']['categorical'] +
+            self.config['feature_config']['continuous'] +
+            self.config['targets']
+        )
+        df = df.dropna(subset=cols_needed)
+        print(f"Data loaded with shape {df.shape}")
         return df
 
-    def _get_models(self):
-        base = {'learning_rate':0.01, 'random_state':0}
-        return {
-            'xgb': XGBRegressor(n_estimators=500, **base),
-            'lgb': LGBMRegressor(n_estimators=500, **base),
-            'rf':  RandomForestRegressor(n_estimators=100, random_state=0),
-            'gb':  GradientBoostingRegressor(n_estimators=100, random_state=0),
-            'svr': SVR(kernel='rbf', C=1.0, epsilon=0.1),
-            'en':  ElasticNet(alpha=0.1, l1_ratio=0.5, random_state=0)
-        }
+    def preprocess_data(self, df):
+        """
+        Encode categorical features as integer codes.
 
-    def train_validate(self, name, model, X, y):
-        kf = KFold(n_splits=self.cfg.get('n_splits',5), shuffle=True, random_state=0)
-        metrics_list = []
-        all_pred, all_true = [], []
-        for fold, (tr, va) in enumerate(kf.split(X),1):
-            Xt, Xv = X.iloc[tr], X.iloc[va]
-            yt, yv = y.iloc[tr], y.iloc[va]
-            # Scale inside fold
-            sc = StandardScaler()
-            Xt_s = pd.DataFrame(sc.fit_transform(Xt), columns=X.columns)
-            Xv_s = pd.DataFrame(sc.transform(Xv), columns=X.columns)
-            model.fit(Xt_s, yt)
-            pred = model.predict(Xv_s)
-            all_pred.extend(pred)
-            all_true.extend(yv)
-            metrics_list.append({
-                'model': name, 'target': y.name, 'fold': fold,
-                'r2': r2_score(yv, pred),
-                'mse': mean_squared_error(yv, pred),
-                'mae': mean_absolute_error(yv, pred),
-                'pearson': stats.pearsonr(yv, pred)[0]
+        Note:
+        - No scaling is done here.
+        - Scaling (if needed) will be managed inside Pipelines for certain models.
+        """
+        print("Preprocessing data...")
+        for cat in self.config['feature_config']['categorical']:
+            if cat in df.columns:
+                df[cat] = pd.Categorical(df[cat]).codes
+
+        print("Preprocessing completed.")
+        return df
+
+    # ------------------------- model factory -------------------------
+
+    def _get_base_estimator(self, name):
+        """
+        Return a base estimator for a given model name.
+
+        Note: Tree-based models do not need scaling, while SVR / ElasticNet do.
+        """
+        if name == 'XGBoost':
+            return xgb.XGBRegressor(
+                n_estimators=10000,  # many trees + early stopping
+                learning_rate=0.01,
+                max_depth=5,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                random_state=42,
+                eval_metric='rmse',
+                tree_method='hist'
+            )
+        elif name == 'LightGBM':
+            return lgb.LGBMRegressor(
+                n_estimators=10000,
+                learning_rate=0.01,
+                max_depth=5,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                num_leaves=31,
+                reg_alpha=0.1,
+                reg_lambda=0.1,
+                random_state=42
+            )
+        elif name == 'RandomForest':
+            return RandomForestRegressor(
+                n_estimators=1000,
+                max_depth=10,
+                min_samples_split=5,
+                random_state=42,
+                n_jobs=-1
+            )
+        elif name == 'GradientBoosting':
+            return GradientBoostingRegressor(
+                n_estimators=1000,
+                learning_rate=0.01,
+                max_depth=5,
+                subsample=0.8,
+                random_state=42
+            )
+        elif name == 'SVR':
+            return SVR(kernel='rbf', C=1.0, epsilon=0.1)
+        elif name == 'ElasticNet':
+            return ElasticNet(
+                alpha=0.01,
+                l1_ratio=0.5,
+                random_state=42,
+                selection='random'
+            )
+        else:
+            raise ValueError(f"Unknown model: {name}")
+
+    def _build_pipeline(self, name):
+        """
+        Build a Pipeline for a given model name.
+
+        - For tree-based models, no StandardScaler is added.
+        - For SVR / ElasticNet, StandardScaler is added before the estimator.
+        """
+        est = self._get_base_estimator(name)
+
+        if name in ('SVR', 'ElasticNet'):
+            pipe = Pipeline([
+                ('scaler', StandardScaler(with_mean=True, with_std=True)),
+                ('est', est)
+            ])
+        else:
+            pipe = Pipeline([
+                ('est', est)
+            ])
+
+        return pipe
+
+    # ------------------------- train & evaluate -------------------------
+
+    def train_evaluate_model(self, name, X, y):
+        """
+        Train and evaluate one model on one target using K-fold CV.
+
+        Returns
+        -------
+        metrics_df : pandas.DataFrame
+            Per-fold metrics (R², MSE, MAE, Pearson).
+        """
+        print(f"Training {name} on target {y.name}...")
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+        fold_metrics = []
+        preds, trues = [], []
+        key = f"{name}_{y.name}"
+        best_r2 = -np.inf
+        best_pipe = None
+
+        for fold, (train_idx, val_idx) in enumerate(kf.split(X), 1):
+            X_tr, X_val = X.iloc[train_idx], X.iloc[val_idx]
+            y_tr, y_val = y.iloc[train_idx], y.iloc[val_idx]
+
+            pipe = self._build_pipeline(name)
+
+            # Early stopping parameters for XGBoost / LightGBM.
+            # Note: here X_tr and X_val are both in the same feature space
+            # (no external scaling), so eval_set is consistent.
+            fit_params = {}
+            if name in ('XGBoost', 'LightGBM'):
+                fit_params = {
+                    'est__eval_set': [(X_val, y_val)],
+                    'est__early_stopping_rounds': 200,
+                    'est__verbose': False
+                }
+                if name == 'LightGBM':
+                    fit_params['est__eval_metric'] = 'rmse'
+
+            pipe.fit(X_tr, y_tr, **fit_params)
+
+            y_pred = pipe.predict(X_val)
+            preds.extend(y_pred.tolist())
+            trues.extend(y_val.tolist())
+
+            r2 = r2_score(y_val, y_pred)
+            mse = mean_squared_error(y_val, y_pred)
+            mae = mean_absolute_error(y_val, y_pred)
+            pearson = self._safe_pearson(y_val, y_pred)
+
+            fold_metrics.append({
+                'model': name,
+                'target': y.name,
+                'fold': fold,
+                'r2': r2,
+                'mse': mse,
+                'mae': mae,
+                'pearson': pearson
             })
-        # Save log
-        pd.DataFrame(metrics_list).to_csv(
-            os.path.join(self.logs_dir, f"log_{name}_{y.name}.csv"), index=False)
-        # Track best model by mean R2
-        avg_r2 = np.mean([m['r2'] for m in metrics_list])
-        if (y.name not in self.best_models) or (avg_r2 > self.best_models[y.name][0]):
-            self.best_models[y.name] = (avg_r2, model)
-        # Save predictions
-        self.preds[f"{name}_{y.name}"] = {'true': all_true, 'pred': all_pred}
-        # Feature importance
-        self._save_importances(model, X, y.name, name)
-        return metrics_list
 
-    def _save_importances(self, model, X, target, name):
+            if r2 > best_r2:
+                best_r2 = r2
+                best_pipe = pipe
+
+        metrics_df = pd.DataFrame(fold_metrics)
+        metrics_df.to_csv(
+            os.path.join(self.logs_dir, f"log_{name}_{y.name}.csv"),
+            index=False
+        )
+        self.training_logs[key] = metrics_df
+
+        # Store the best model and aggregated predictions.
+        self.best_models[key] = best_pipe
+        self.predictions[key] = {'true': trues, 'pred': preds}
+
+        # Feature importance analysis.
+        self._analyze_importance(best_pipe, X.columns.tolist(), y.name, name)
+
+        return metrics_df
+
+    def _analyze_importance(self, pipe, features, target, name):
+        """
+        Analyze feature importance for a fitted pipeline.
+
+        - If the estimator has feature_importances_, use it directly.
+        - Otherwise, use permutation importance on the full dataset.
+        """
         try:
-            if hasattr(model, 'feature_importances_'):
-                imp = model.feature_importances_
+            importances = None
+            est = pipe.named_steps['est']
+
+            if hasattr(est, 'feature_importances_'):
+                importances = est.feature_importances_
             else:
-                res = permutation_importance(model, X, self.preds[f"{name}_{target}"]['true'], n_repeats=5)
-                imp = res.importances_mean
-            df_imp = pd.DataFrame({'feature':X.columns, 'importance':imp})
-            df_imp.to_csv(os.path.join(self.results_dir, f"imp_{name}_{target}.csv"), index=False)
-            self.importances = pd.concat([self.importances, df_imp], ignore_index=True)
-        except Exception:
-            pass
+                res = permutation_importance(
+                    pipe,
+                    self.data[features],
+                    self.data[target],
+                    n_repeats=10,
+                    random_state=42,
+                    scoring='r2'
+                )
+                importances = res.importances_mean
+
+            df_imp = pd.DataFrame({
+                'feature': features,
+                'importance': importances
+            }).sort_values('importance', ascending=False)
+
+            df_imp.to_csv(
+                os.path.join(self.results_dir, f"imp_{name}_{target}.csv"),
+                index=False
+            )
+
+            self.feature_importances = pd.concat(
+                [self.feature_importances,
+                 df_imp.assign(model=name, target=target)],
+                ignore_index=True
+            )
+
+        except Exception as e:
+            print(f"Feature importance error ({name}-{target}): {e}")
+
+    # ------------------------- plotting -------------------------
+
+    def _plot_comparison(self):
+        """
+        For each target, generate one figure per (metric × plot_type):
+        - metrics: r2, mse, mae, pearson
+        - plot_types: boxplot, bar, violin
+        """
+        df = pd.concat(self.results, ignore_index=True)
+        metrics = ['r2', 'mse', 'mae', 'pearson']
+        plot_types = ['boxplot', 'bar', 'violin']
+        targets = df['target'].unique().tolist()
+
+        # Save comparison data for each metric (optional)
+        for metric in metrics:
+            df[['model', 'target', metric]].to_csv(
+                os.path.join(self.results_dir, f"comp_data_{metric}.csv"),
+                index=False
+            )
+
+        for tgt in targets:
+            df_t = df[df['target'] == tgt].copy()
+            model_order = df_t['model'].unique().tolist()
+            pal = [f"#{self.palette.get(m, '000000')}" for m in model_order]
+
+            for metric in metrics:
+                for plot_type in plot_types:
+                    fig, ax = plt.subplots()
+
+                    if plot_type == 'boxplot':
+                        sns.boxplot(
+                            x='model', y=metric,
+                            data=df_t,
+                            ax=ax,
+                            order=model_order,
+                            palette=pal
+                        )
+                    elif plot_type == 'bar':
+                        agg = df_t.groupby('model', as_index=False)[metric].mean()
+                        sns.barplot(
+                            x='model', y=metric,
+                            data=agg,
+                            ax=ax,
+                            order=model_order,
+                            palette=pal,
+                            edgecolor='black'
+                        )
+                        # Annotate bar heights
+                        for p in ax.patches:
+                            height = p.get_height()
+                            ax.annotate(
+                                f"{height:.3f}",
+                                (p.get_x() + p.get_width() / 2., height),
+                                ha='center', va='bottom',
+                                fontsize=8,
+                                xytext=(0, 3),
+                                textcoords='offset points'
+                            )
+                    else:  # violin
+                        sns.violinplot(
+                            x='model', y=metric,
+                            data=df_t,
+                            ax=ax,
+                            order=model_order,
+                            palette=pal,
+                            cut=0,
+                            inner='box'
+                        )
+
+                    # Reference line at global mean
+                    ax.axhline(
+                        df_t[metric].mean(),
+                        linestyle='--',
+                        linewidth=1
+                    )
+                    ax.set_xlabel('Model')
+                    ax.set_ylabel(metric.upper())
+                    ax.tick_params(axis='x', rotation=30)
+                    ax.set_title(
+                        f"{metric.upper()} | Target: {tgt}",
+                        pad=10,
+                        fontweight='bold'
+                    )
+
+                    # Small note with involved models and target
+                    self._ax_topleft_note(
+                        ax,
+                        model=' / '.join(model_order),
+                        target=tgt
+                    )
+
+                    tag = f"comp_{plot_type}_{metric}_{tgt}"
+                    self._save_fig(fig, tag)
+
+    def _plot_scatter(self):
+        """
+        Scatter plots of true vs. predicted values for each (model, target).
+        """
+        for key, pred_dict in self.predictions.items():
+            if '_' in key:
+                model, target = key.split('_', 1)
+            else:
+                model, target = key, ''
+
+            y_true = np.array(pred_dict['true'])
+            y_pred = np.array(pred_dict['pred'])
+
+            r2 = r2_score(y_true, y_pred)
+            pr = self._safe_pearson(y_true, y_pred)
+
+            fig, ax = plt.subplots()
+            sns.regplot(
+                x=y_true,
+                y=y_pred,
+                ax=ax,
+                scatter_kws={'s': 10, 'alpha': 0.8},
+                line_kws={'linewidth': 1.2}
+            )
+
+            lims = [
+                min(y_true.min(), y_pred.min()),
+                max(y_true.max(), y_pred.max())
+            ]
+            ax.plot(lims, lims, linestyle=':', linewidth=1)  # y = x reference
+            ax.set_xlim(lims)
+            ax.set_ylim(lims)
+            ax.set_xlabel('True')
+            ax.set_ylabel('Predicted')
+            ax.set_title(f"Scatter | {target} — {model}", pad=10, fontweight='bold')
+
+            extra = [
+                f"R²={r2:.3f}",
+                f"Pearson={pr:.3f}" if not np.isnan(pr) else "Pearson=NA"
+            ]
+            self._ax_topleft_note(ax, model=model, target=target, extra_lines=extra)
+
+            tag = f"scatter_{target}_{model}"
+            self._save_fig(fig, tag)
+
+    def _plot_residuals(self):
+        """
+        Residual plots for each (model, target).
+        """
+        for key, pred_dict in self.predictions.items():
+            if '_' in key:
+                model, target = key.split('_', 1)
+            else:
+                model, target = key, ''
+
+            y_true = np.array(pred_dict['true'])
+            y_pred = np.array(pred_dict['pred'])
+            residuals = y_true - y_pred
+
+            fig, ax = plt.subplots()
+            ax.scatter(y_pred, residuals, s=10, alpha=0.8)
+            ax.axhline(0, linestyle='--', linewidth=1)
+            ax.set_xlabel('Predicted')
+            ax.set_ylabel('Residuals')
+            ax.set_title(f"Residuals | {target} — {model}", pad=10, fontweight='bold')
+
+            mae = mean_absolute_error(y_true, y_pred)
+            rmse = mean_squared_error(y_true, y_pred, squared=False)
+            extra = [f"MAE={mae:.3f}", f"RMSE={rmse:.3f}"]
+            self._ax_topleft_note(ax, model=model, target=target, extra_lines=extra)
+
+            tag = f"residuals_{target}_{model}"
+            self._save_fig(fig, tag)
+
+    # ------------------------- driver -------------------------
 
     def run(self):
-        df = self.load_and_clean()
-        df = self.preprocess(df)
-        features = self.cfg['features']
-        models = self._get_models()
-        for tgt in self.cfg['targets']:
-            X = df[features]
-            y = df[tgt]
-            for name, mdl in models.items():
-                metrics = self.train_validate(name, mdl, X, y)
-                self.results.extend(metrics)
-        # Save overall results
-        pd.DataFrame(self.results).to_csv(
-            os.path.join(self.results_dir, 'results_summary.csv'), index=False)
+        """
+        Main driver:
+        - Load and preprocess data.
+        - Train and evaluate all models on all targets.
+        - Save metrics, models, and plots.
+        """
+        self.data = self.preprocess_data(self.load_data())
+        features = (
+            self.config['feature_config']['categorical'] +
+            self.config['feature_config']['continuous']
+        )
+
+        for tgt in self.config['targets']:
+            X = self.data[features]
+            y = self.data[tgt]
+
+            for model_name in self.config['models']:
+                metrics_df = self.train_evaluate_model(model_name, X, y)
+                self.results.append(metrics_df)
+
+        # Save all fold metrics
+        all_results = pd.concat(self.results, ignore_index=True)
+        all_results.to_csv(
+            os.path.join(self.results_dir, 'results.csv'),
+            index=False
+        )
+
         # Save best models
-        for tgt, (score, mdl) in self.best_models.items():
-            joblib.dump(mdl, os.path.join(self.models_dir, f"best_{tgt}.pkl"))
-        # Generate plots (scatter, residuals, comparisons)
-        # ... placeholder for plot functions
-        print("Pipeline completed.")
+        for key, pipe in self.best_models.items():
+            joblib.dump(pipe, os.path.join(self.models_dir, f"{key}.pkl"))
+
+        print("Generating plots...")
+        self._plot_comparison()
+        self._plot_scatter()
+        self._plot_residuals()
+        print("Done.")
+
 
 if __name__ == '__main__':
-    config = {
-        'data_path': os.getenv('DATA_PATH', '/path/to/data.csv'),
-        'features': [],          # fill list of feature names
-        'categorical': [],       # optional list
-        'continuous': [],        # optional list
-        'targets': [],           # list of target columns
-        'n_splits': 5,
+    # Example configuration (placeholders, not runnable as-is).
+    cfg = {
+        'data_path': r"PATH_TO_YOUR_DATA.csv",
+        'models': [
+            'XGBoost',
+            'LightGBM',
+            'RandomForest',
+            'GradientBoosting',
+            'SVR',
+            'ElasticNet'
+        ],
+        'feature_config': {
+            'categorical': [
+                # "cat_feature_1", "cat_feature_2", ...
+            ],
+            'continuous': [
+                # "cont_feature_1", "cont_feature_2", ...
+            ]
+        },
+        'targets': [
+            # "target_1", "target_2", ...
+        ],
+        # Optional color palette: model name -> hex RGB (without '#')
+        'palette': {
+            'XGBoost': '3480b8',
+            'LightGBM': '8dcec8',
+            'RandomForest': 'ffbe7a',
+            'GradientBoosting': 'fa8878',
+            'SVR': 'c82423',
+            'ElasticNet': 'c2bdde'
+        }
     }
-    out_dir = os.getenv('OUTPUT_DIR', None)
-    pipe = RegressionPipeline(config, output_dir=out_dir)
-    pipe.run()
+
+    trainer = ModelTrainer(
+        cfg,
+        output_dir=r"PATH_TO_OUTPUT_DIRECTORY"
+    )
+    trainer.run()
