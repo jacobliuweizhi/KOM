@@ -1,0 +1,2 @@
+﻿Outcome,Mode,N features,AUROC,95% CI,AUPRC,Brier,Use case
+WOMAC Pain,Full,74,0.6993,"[0.6889, 0.7098]",0.3192,0.1305,Research / publication baseline

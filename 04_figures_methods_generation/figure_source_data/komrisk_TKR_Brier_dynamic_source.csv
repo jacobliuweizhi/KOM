@@ -1,0 +1,5 @@
+﻿Outcome,Mode,N features,AUROC,95% CI,AUPRC,Brier,Use case
+TKR,Standard,25,0.912,—,,0.0207,Tertiary specialist clinic
+TKR,Minimal,6,0.8993,—,,0.0194,ER triage / telehealth
+TKR,Lite,12,0.9133,—,,0.0189,General practice / secondary
+TKR,Full,73,0.9212,"[0.9125, 0.9309]",0.2745,0.0187,Research / publication baseline

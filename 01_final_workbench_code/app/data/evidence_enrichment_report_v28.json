@@ -1,0 +1,25 @@
+{
+  "status": "completed",
+  "version": "V28 source-abstract L2/L3 enrichment",
+  "generated_at": "2026-06-15T13:52:59Z",
+  "l2_l3_rows_targeted": 2018,
+  "rows_updated": 2018,
+  "unique_doi_count": 1391,
+  "pubmed_resolved_rows": 1989,
+  "crossref_resolved_rows": 29,
+  "local_metadata_rows": 0,
+  "rows_with_abstract_numeric_effect_sentences": 1883,
+  "weak_fulltext_marker_remaining": 0,
+  "weak_numeric_marker_remaining": 0,
+  "new_columns": [
+    "Comparator_Detail",
+    "Evidence_Extraction_QA",
+    "Intervention_Detail",
+    "Population_Fingerprint",
+    "Quantitative_Effect_Status",
+    "Result_Direction",
+    "Source_Abstract",
+    "Source_PMID"
+  ],
+  "cache": "app\\data\\source_cache_l2_l3_v28.jsonl"
+}

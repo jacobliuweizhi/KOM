@@ -1,0 +1,16 @@
+{
+  "status": "completed",
+  "previous_content_count": 3266,
+  "final_database_count": 3267,
+  "rows_enriched": 3266,
+  "semaglutide_step9_added": true,
+  "evidence_unit_contract": [
+    "P_Population includes population detail, stage/phenotype, sample/evidence-set status.",
+    "I_Intervention states concrete intervention or exposure where inferable.",
+    "O_Outcomes includes signal direction.",
+    "Effect_Summary includes quantitative abstraction or exact-effect-availability status.",
+    "Prescription_Use states evidence-use tier and clinician/safety boundary."
+  ],
+  "limitations": "The all-row pass is deterministic local metadata enrichment. STEP 9 was targeted-source abstracted; remaining rows retain DOI/PMID links and mark when exact effect size is not encoded locally.",
+  "generated_at": "2026-06-15T06:14:19+00:00"
+}

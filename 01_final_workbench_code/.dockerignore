@@ -1,0 +1,13 @@
+runtime/
+validation/
+__pycache__/
+*.pyc
+*.pyo
+*.zip
+_verify_extract*/
+app/config/llm_config.local.json
+app/data/current_profile_config.json
+app/data/final_rx_prescription.json
+app/data/latest_pathway_run.json
+.git/
+.github/

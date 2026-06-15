@@ -1,0 +1,7 @@
+{
+  "qa_version": "V24",
+  "updated_l2_l3_units": 2018,
+  "remaining_weak_marker_units": 0,
+  "weak_examples": [],
+  "rule": "L2/L3 rows must expose population, sample/evidence-set status, result direction and quantitative-effect status; unavailable numeric magnitude is explicitly full-text flagged."
+}

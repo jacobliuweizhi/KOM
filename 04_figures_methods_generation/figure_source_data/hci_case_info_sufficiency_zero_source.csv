@@ -1,0 +1,4 @@
+﻿metric_code,metric_label,condition,value,sem,count
+info_sufficiency,Information,+AI plan,7.992307692307692,0.11313922546555581,260
+info_sufficiency,Information,+AI+evidence,8.092307692307692,0.11020033431244765,260
+info_sufficiency,Information,Patient only,7.911538461538462,0.10188054937614348,260

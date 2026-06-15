@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #172033;
+  background: #f7f8f5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f7f8f5;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2;
+}
+
+.panel {
+  @apply rounded-lg border border-slate-200 bg-white shadow-soft;
+}
+
+.section-title {
+  @apply text-xs font-bold uppercase tracking-[0.12em] text-clinical;
+}
+
+.small-note {
+  @apply text-sm leading-6 text-muted;
+}

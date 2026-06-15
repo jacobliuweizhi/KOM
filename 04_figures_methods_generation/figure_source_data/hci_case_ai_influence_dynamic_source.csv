@@ -1,0 +1,3 @@
+﻿metric_code,metric_label,condition,value,sem,count
+ai_influence,AI influence,+AI plan,5.6461538461538465,0.1744543086854584,260
+ai_influence,AI influence,+AI+evidence,5.903846153846154,0.18888776710841798,260

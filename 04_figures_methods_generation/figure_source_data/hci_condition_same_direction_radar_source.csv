@@ -1,0 +1,4 @@
+﻿condition,mean_score,Confidence,Information,Certainty,Workload,AI influence,raw_confidence,direction_confidence,raw_info_sufficiency,direction_info_sufficiency,raw_decision_certainty,direction_decision_certainty,raw_case_workload,direction_case_workload,raw_ai_influence,direction_ai_influence
++AI+evidence,1.0,1.0,1.0,1.0,1.0,1.0,7.930769230769231,higher,8.092307692307692,higher,7.530769230769231,higher,3.873076923076923,lower,5.903846153846154,higher
++AI plan,0.404510147063339,0.5425531914893615,0.44680851063829785,0.396825396825399,0.6363636363636365,0.0,7.765384615384615,higher,7.992307692307692,higher,7.384615384615385,higher,4.319230769230769,lower,5.6461538461538465,higher
+Patient only,0.0,0.0,0.0,0.0,0.0,,7.569230769230769,higher,7.911538461538462,higher,7.288461538461538,higher,5.1,lower,,higher

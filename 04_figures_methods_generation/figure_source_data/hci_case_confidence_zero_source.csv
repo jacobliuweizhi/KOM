@@ -1,0 +1,4 @@
+﻿metric_code,metric_label,condition,value,sem,count
+confidence,Confidence,+AI plan,7.765384615384615,0.09994715425303412,260
+confidence,Confidence,+AI+evidence,7.930769230769231,0.10502335761767602,260
+confidence,Confidence,Patient only,7.569230769230769,0.09182131041614283,260

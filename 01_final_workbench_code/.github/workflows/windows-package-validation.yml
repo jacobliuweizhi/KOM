@@ -1,0 +1,30 @@
+name: KOM Windows package validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  validate-windows-package:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate embedded local package
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "runtime\python\python.exe")) {
+            throw "Embedded runtime\python\python.exe is missing. Upload the full package or use Docker web deployment instead."
+          }
+          & "runtime\python\python.exe" "package_integrity.py"
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kom-validation-report
+          path: validation/package_integrity_report.json

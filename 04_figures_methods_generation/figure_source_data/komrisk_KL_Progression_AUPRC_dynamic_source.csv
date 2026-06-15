@@ -1,0 +1,2 @@
+﻿Outcome,Mode,N features,AUROC,95% CI,AUPRC,Brier,Use case
+KL Progression,Full,74,0.8688,"[0.8603, 0.8770]",0.3675,0.0653,Research / publication baseline

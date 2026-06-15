@@ -1,0 +1,17 @@
+{
+  "sections": [
+    "Patient summary",
+    "Image-linked assessment",
+    "Risk profile",
+    "Evidence graph summary",
+    "Treatment board synthesis",
+    "Safety review",
+    "Follow-up plan",
+    "Clinician confirmation"
+  ],
+  "exports": [
+    "html",
+    "markdown",
+    "json"
+  ]
+}

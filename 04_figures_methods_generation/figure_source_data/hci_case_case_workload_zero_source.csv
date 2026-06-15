@@ -1,0 +1,4 @@
+﻿metric_code,metric_label,condition,value,sem,count
+case_workload,Workload,+AI plan,4.319230769230769,0.16586051255526207,260
+case_workload,Workload,+AI+evidence,3.873076923076923,0.16343921823886673,260
+case_workload,Workload,Patient only,5.1,0.11923675698963057,260

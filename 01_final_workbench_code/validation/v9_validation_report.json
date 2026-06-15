@@ -1,0 +1,206 @@
+{
+  "status": "KOM_ENGLISH_READY",
+  "summary": "40/40 checks passed",
+  "checks": [
+    {
+      "name": "english_public_content",
+      "passed": true,
+      "detail": "No CJK characters were found in public app, API, data, README or script files."
+    },
+    {
+      "name": "english_html_language",
+      "passed": true,
+      "detail": "HTML document language and title are English."
+    },
+    {
+      "name": "assess_treat_architecture",
+      "passed": true,
+      "detail": "Two-subsystem architecture is visible."
+    },
+    {
+      "name": "profile_controls",
+      "passed": true,
+      "detail": "Interactive KOM-Profile controls are present."
+    },
+    {
+      "name": "radiology_run_state",
+      "passed": true,
+      "detail": "KOM-Rad keeps a run-state distinction."
+    },
+    {
+      "name": "risk_prediction",
+      "passed": true,
+      "detail": "Risk prediction is endpoint-backed, side-specific, and scenario controls are limited to modifiable or follow-up variables."
+    },
+    {
+      "name": "bilateral_knee_logic",
+      "passed": true,
+      "detail": "Left and right knees are explicit across profile, imaging and risk logic."
+    },
+    {
+      "name": "bilateral_coupled_risk",
+      "passed": true,
+      "detail": "KOM-Risk includes a transparent bilateral-coupled surrogate where contralateral pain/function/KL influence both knee predictions."
+    },
+    {
+      "name": "bilateral_weight_v2_audit",
+      "passed": true,
+      "detail": "KOM-Risk exposes endpoint-backed V4 bilateral coupling weights, KL4 ceiling semantics and a paired-knee retraining data strategy."
+    },
+    {
+      "name": "kl4_ceiling_tka_gate",
+      "passed": true,
+      "detail": "KL4 is no longer interpreted as KL+1 progression and severe KL4 knees trigger a high TKA-event floor."
+    },
+    {
+      "name": "dashboard_endpoint_workflow",
+      "passed": true,
+      "detail": "Overview places Settings immediately after Overview and shows a meaningful endpoint/data-contract workflow graph over a non-distorted bilateral knee radiograph background."
+    },
+    {
+      "name": "dashboard_layer_navigation",
+      "passed": true,
+      "detail": "Dashboard layer buttons jump to KOM-Profile, KOM-RAG, KOM-MDT, KOM-Safe and KOM-Rx."
+    },
+    {
+      "name": "public_case_layout",
+      "passed": true,
+      "detail": "KOM-Profile uses four direct patient cases and removes the public external grading classification."
+    },
+    {
+      "name": "profile_card_readability",
+      "passed": true,
+      "detail": "KOM-Profile case cards, summary badge, visible bilateral editor and sticky Next action prevent label overlap, clipping, hidden lower-left content and Case 4 wrapping."
+    },
+    {
+      "name": "case_locked_kl_risk",
+      "passed": true,
+      "detail": "KOM-Risk displays KL as locked profile-derived input and does not expose left/right KL sliders."
+    },
+    {
+      "name": "editable_kl_profile_fields",
+      "passed": true,
+      "detail": "KOM-Profile exposes editable left/right KL controls, while downstream modules read the resulting profile-derived KL values."
+    },
+    {
+      "name": "smooth_profile_risk_sliders",
+      "passed": true,
+      "detail": "WOMAC/NRS/BMI sliders update values without full page rerender on every input."
+    },
+    {
+      "name": "persistent_profile_config",
+      "passed": true,
+      "detail": "Profile configuration is saved locally and reused by downstream modules."
+    },
+    {
+      "name": "rag_catalog_and_chain",
+      "passed": true,
+      "detail": "KOM-RAG contains evidence-chain and full-catalog views."
+    },
+    {
+      "name": "rag_sticky_domain_switcher",
+      "passed": true,
+      "detail": "Specialty evidence chain keeps domain tabs and level filters sticky while the panel scrolls."
+    },
+    {
+      "name": "rag_floating_evidence_detail",
+      "passed": true,
+      "detail": "KOM-RAG evidence cards and chain nodes can open floating Evidence Unit details and close them by clicking the backdrop."
+    },
+    {
+      "name": "interactive_dynamic_graph",
+      "passed": true,
+      "detail": "Full graph figure is an interactive patient/query-driven network instead of a static overlapping image."
+    },
+    {
+      "name": "rag_graph_level_sampling",
+      "passed": true,
+      "detail": "Full graph figure samples across L1-L7 so L1 guideline rows cannot hide other evidence tiers."
+    },
+    {
+      "name": "rag_quantified_evidence_detail",
+      "passed": true,
+      "detail": "Evidence Unit detail extracts source-level population, intervention, result direction and quantitative-effect availability."
+    },
+    {
+      "name": "l2_l3_evidence_qa",
+      "passed": true,
+      "detail": "L2/L3 V28 source-abstract evidence QA completed for 2018 rows; weak marker rows: 0; missing V28 detail rows: 0."
+    },
+    {
+      "name": "rag_catalog_pagination",
+      "passed": true,
+      "detail": "Evidence catalog renders paginated rows and exports full JSON without freezing the page."
+    },
+    {
+      "name": "patient_fit_rag_api",
+      "passed": true,
+      "detail": "Patient-fit RAG retrieval has an API route and explicit success rule."
+    },
+    {
+      "name": "mdt_specialty_agents",
+      "passed": true,
+      "detail": "Specialty agents are present."
+    },
+    {
+      "name": "mdt_agent_dialogue_api",
+      "passed": true,
+      "detail": "Each MDT specialty agent exposes quick prompts and a local/API dialogue path using current patient data, selected modules and safety gates."
+    },
+    {
+      "name": "deep_treatment_detail",
+      "passed": true,
+      "detail": "Treatment plan includes concrete medication, injection, exercise, nutrition, psychology, pre-referral screening and frontier/research-only boundaries."
+    },
+    {
+      "name": "selectable_rx_builder",
+      "passed": true,
+      "detail": "KOM-Rx includes a clinician-selectable modular prescription builder."
+    },
+    {
+      "name": "rx_evidence_support",
+      "passed": true,
+      "detail": "Every selectable and final KOM-Rx module carries L1-L7 Evidence Unit support."
+    },
+    {
+      "name": "final_rx_confirmation",
+      "passed": true,
+      "detail": "Clinician-selected modules generate a saved final prescription after confirmation."
+    },
+    {
+      "name": "semaglutide_obesity_module",
+      "passed": true,
+      "detail": "Obese knee OA pathway includes a semaglutide/STEP 9 special-population option with safety boundaries."
+    },
+    {
+      "name": "safe_compatibility_data_gates",
+      "passed": true,
+      "detail": "KOM-Safe separates cross-specialty prescription compatibility from patient-data completeness gates."
+    },
+    {
+      "name": "safe_negotiation",
+      "passed": true,
+      "detail": "KOM-Safe negotiation loop is visible."
+    },
+    {
+      "name": "safe_audit_traceability",
+      "passed": true,
+      "detail": "KOM-Safe negotiation records auditable event IDs, input gate status and adoption rules."
+    },
+    {
+      "name": "rx_report",
+      "passed": true,
+      "detail": "KOM-Rx structured report is visible."
+    },
+    {
+      "name": "score_validation",
+      "passed": true,
+      "detail": "KOM-Score validation layers are represented."
+    },
+    {
+      "name": "api_routes",
+      "passed": true,
+      "detail": "Required API routes are registered."
+    }
+  ]
+}

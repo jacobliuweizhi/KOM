@@ -1,0 +1,98 @@
+{
+  "status": "PASS",
+  "base_url": "http://127.0.0.1:8027",
+  "requires_system_python": false,
+  "embedded_python": "runtime/python/python.exe",
+  "checks": [
+    {
+      "name": "embedded_python_exists",
+      "passed": true,
+      "detail": "runtime/python/python.exe"
+    },
+    {
+      "name": "static_index_exists",
+      "passed": true,
+      "detail": "app/static/index.html"
+    },
+    {
+      "name": "server_entry_exists",
+      "passed": true,
+      "detail": "app/start_server.py"
+    },
+    {
+      "name": "start_script_exists",
+      "passed": true,
+      "detail": "Start_KOM_Workbench.bat"
+    },
+    {
+      "name": "portable_start_script_exists",
+      "passed": true,
+      "detail": "Start_KOM_Workbench_Portable.bat"
+    },
+    {
+      "name": "dockerfile_exists",
+      "passed": true,
+      "detail": "Dockerfile"
+    },
+    {
+      "name": "render_blueprint_exists",
+      "passed": true,
+      "detail": "render.yaml"
+    },
+    {
+      "name": "github_web_deploy_readme_exists",
+      "passed": true,
+      "detail": "README_GITHUB_AND_WEB_DEPLOY.md"
+    },
+    {
+      "name": "github_actions_windows_validation_exists",
+      "passed": true,
+      "detail": ".github/workflows/windows-package-validation.yml"
+    },
+    {
+      "name": "server_port_open",
+      "passed": true,
+      "detail": "http://127.0.0.1:8027"
+    },
+    {
+      "name": "api_v9_validate_http_200",
+      "passed": true,
+      "detail": "{\"ok\": true, \"data\": {\"status\": \"KOM_ENGLISH_READY\", \"summary\": \"40/40 checks passed\", \"checks\": [{\"name\": \"english_public_content\", \"passed\": true, \"detail\": \"No CJK characters were found in public app, API, data, README or script files.\"}, {\"name\": \"english_html_language\", \"passed\": true, \"detail\": \"HTML document language and title are English.\"}, {\"name\": \"assess_treat_architecture\", \"passed\": true, \"detail\": \"Two-subsystem architecture is visible.\"}, {\"name\": \"profile_controls\", \"passed\": tr"
+    },
+    {
+      "name": "api_v9_validate_ready",
+      "passed": true,
+      "detail": "KOM_ENGLISH_READY"
+    },
+    {
+      "name": "route__dashboard",
+      "passed": true,
+      "detail": "<!doctype html>\r\n<html lang=\"en\">\r\n<head>\r\n  <meta charset=\"utf-8\">\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n  <title>KOM Knee Osteoarthritis Clinical Workbench</title>\r\n  <link rel=\"stylesheet\" href=\"/kom_v9.css\">\r\n</head>\r\n<body>\r\n  <div id=\"app\"></div>\r\n  <div id=\""
+    },
+    {
+      "name": "route__rx",
+      "passed": true,
+      "detail": "<!doctype html>\r\n<html lang=\"en\">\r\n<head>\r\n  <meta charset=\"utf-8\">\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n  <title>KOM Knee Osteoarthritis Clinical Workbench</title>\r\n  <link rel=\"stylesheet\" href=\"/kom_v9.css\">\r\n</head>\r\n<body>\r\n  <div id=\"app\"></div>\r\n  <div id=\""
+    },
+    {
+      "name": "route__rag",
+      "passed": true,
+      "detail": "<!doctype html>\r\n<html lang=\"en\">\r\n<head>\r\n  <meta charset=\"utf-8\">\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\r\n  <title>KOM Knee Osteoarthritis Clinical Workbench</title>\r\n  <link rel=\"stylesheet\" href=\"/kom_v9.css\">\r\n</head>\r\n<body>\r\n  <div id=\"app\"></div>\r\n  <div id=\""
+    },
+    {
+      "name": "route__api_routes",
+      "passed": true,
+      "detail": "{\"ok\": true, \"data\": {\"GET\": [\"/api/routes\", \"/api/status\", \"/api/v9/content\", \"/api/v9/validate\", \"/api/v9/evidence/explore\", \"/api/v9/risk/predict\", \"/api/v10/evidence/units\", \"/api/v10/evidence/patient-fit\", \"/api/validation\", \"/api/settings/llm/status\", \"/api/v16/profile/current\", \"/api/v16/rx/f"
+    },
+    {
+      "name": "route__api_v10_evidence_units",
+      "passed": true,
+      "detail": "{\"ok\": true, \"data\": {\"rows\": [{\"EU_ID\": \"KOA-EU-00001\", \"Agent_Database\": \"assistive_support\", \"Title\": \"EULAR recommendations for the non-pharmacological core management of hip and knee osteoarthritis: 2023 update\", \"Evidence_Level\": \"L1 Guideline / consensus\", \"KOA_Relevance_Grade\": \"Included - t"
+    },
+    {
+      "name": "route__api_v10_evidence_patient-fit?q=knee%20osteoarthritis%20NSAID%20exercise&domain=exercise_rehabilitation",
+      "passed": true,
+      "detail": "{\"ok\": true, \"data\": {\"query\": \"knee osteoarthritis NSAID exercise knee osteoarthritis left KL  right KL  BMI  NRS  WOMAC  renal GI anticoagulant cardiovascular medication safety\", \"domain\": \"exercise_rehabilitation\", \"success\": true, \"success_rule\": \"Patient-fit retrieval is successful when at leas"
+    }
+  ]
+}

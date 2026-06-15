@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820" role="img" aria-labelledby="title desc">
+<title id="title">Current KOM-RAG evidence network</title>
+<desc id="desc">Network linking bilateral patient assessment, evidence levels, treatment domains, safety gates and KOM-Rx output.</desc>
+<rect width="1280" height="820" fill="#f8fafc"/>
+<style>.label{font-family:Arial,Helvetica,sans-serif;fill:#172033}.tiny{font-family:Arial,Helvetica,sans-serif;font-size:14px;fill:#526477}.node{stroke:#ffffff;stroke-width:4}.edge{stroke:#8aa3b0;stroke-width:3;fill:none;opacity:.55}.edge2{stroke:#526477;stroke-width:2.4;fill:none;opacity:.35}</style>
+<rect class="node" x="50" y="266" width="140" height="128" rx="12" fill="#245f73"/>
+<text class="label" x="120" y="306" text-anchor="middle" font-size="20" font-weight="800" fill="#ffffff">Left knee</text>
+<text class="label" x="120" y="333" text-anchor="middle" font-size="16" font-weight="800" fill="#eaf4f6">KL4 </text>
+<text class="label" x="120" y="360" text-anchor="middle" font-size="16" font-weight="800" fill="#eaf4f6"> NRS8</text>
+<text class="label" x="120" y="387" text-anchor="middle" font-size="16" font-weight="800" fill="#eaf4f6">WOMAC62</text>
+<rect class="node" x="50" y="426" width="140" height="128" rx="12" fill="#4f7b55"/>
+<text class="label" x="120" y="466" text-anchor="middle" font-size="20" font-weight="800" fill="#ffffff">Right knee</text>
+<text class="label" x="120" y="493" text-anchor="middle" font-size="16" font-weight="800" fill="#eaf4f6">KL2 </text>
+<text class="label" x="120" y="520" text-anchor="middle" font-size="16" font-weight="800" fill="#eaf4f6"> NRS4</text>
+<text class="label" x="120" y="547" text-anchor="middle" font-size="16" font-weight="800" fill="#eaf4f6">WOMAC30</text>
+<path class="edge" d="M190 330 C260 340 300 380 368 410"/>
+<path class="edge" d="M190 490 C260 480 300 440 368 410"/>
+<circle class="node" cx="470" cy="410" r="94" fill="#ffffff" stroke="#245f73"/>
+<circle cx="470" cy="410" r="82" fill="#eaf4f6"/>
+<text class="label" x="470" y="382" text-anchor="middle" font-size="24" font-weight="900">Local evidence</text>
+<text class="label" x="470" y="416" text-anchor="middle" font-size="34" font-weight="900" fill="#245f73">3267</text>
+<text class="tiny" x="470" y="448" text-anchor="middle">Evidence Units</text>
+<path class="edge2" d="M558 410 C610 95 630 95 612 95"/>
+<rect class="node" x="614" y="57" width="172" height="76" rx="12" fill="#ffffff" stroke="#d8e5ec"/>
+<text class="label" x="700" y="87" text-anchor="middle" font-size="20" font-weight="900" fill="#245f73">L1 Guidelines</text>
+<text class="tiny" x="700" y="115" text-anchor="middle">318 units</text>
+<path class="edge2" d="M558 410 C610 200 630 200 612 200"/>
+<rect class="node" x="614" y="162" width="172" height="76" rx="12" fill="#ffffff" stroke="#d8e5ec"/>
+<text class="label" x="700" y="192" text-anchor="middle" font-size="20" font-weight="900" fill="#245f73">L2 Synthesis</text>
+<text class="tiny" x="700" y="220" text-anchor="middle">402 units</text>
+<path class="edge2" d="M558 410 C610 305 630 305 612 305"/>
+<rect class="node" x="614" y="267" width="172" height="76" rx="12" fill="#ffffff" stroke="#d8e5ec"/>
+<text class="label" x="700" y="297" text-anchor="middle" font-size="20" font-weight="900" fill="#245f73">L3 Trials</text>
+<text class="tiny" x="700" y="325" text-anchor="middle">717 units</text>
+<path class="edge2" d="M558 410 C610 410 630 410 612 410"/>
+<rect class="node" x="614" y="372" width="172" height="76" rx="12" fill="#ffffff" stroke="#d8e5ec"/>
+<text class="label" x="700" y="402" text-anchor="middle" font-size="20" font-weight="900" fill="#245f73">L4 Comparative</text>
+<text class="tiny" x="700" y="430" text-anchor="middle">611 units</text>
+<path class="edge2" d="M558 410 C610 515 630 515 612 515"/>
+<rect class="node" x="614" y="477" width="172" height="76" rx="12" fill="#ffffff" stroke="#d8e5ec"/>
+<text class="label" x="700" y="507" text-anchor="middle" font-size="20" font-weight="900" fill="#245f73">L5 Cohort</text>
+<text class="tiny" x="700" y="535" text-anchor="middle">522 units</text>
+<path class="edge2" d="M558 410 C610 620 630 620 612 620"/>
+<rect class="node" x="614" y="582" width="172" height="76" rx="12" fill="#ffffff" stroke="#d8e5ec"/>
+<text class="label" x="700" y="612" text-anchor="middle" font-size="20" font-weight="900" fill="#245f73">L6 Implementation</text>
+<text class="tiny" x="700" y="640" text-anchor="middle">438 units</text>
+<path class="edge2" d="M558 410 C610 725 630 725 612 725"/>
+<rect class="node" x="614" y="687" width="172" height="76" rx="12" fill="#ffffff" stroke="#d8e5ec"/>
+<text class="label" x="700" y="717" text-anchor="middle" font-size="20" font-weight="900" fill="#245f73">L7 Context</text>
+<text class="tiny" x="700" y="745" text-anchor="middle">259 units</text>
+<path class="edge" d="M786 175 C850 175 915 175 935 175"/>
+<rect class="node" x="936" y="130" width="188" height="90" rx="14" fill="#245f73"/>
+<text class="label" x="1030" y="169" text-anchor="middle" font-size="20" font-weight="900" fill="#ffffff">Exercise</text>
+<path class="edge" d="M786 305 C850 305 915 305 935 305"/>
+<rect class="node" x="936" y="260" width="188" height="90" rx="14" fill="#7a4f9a"/>
+<text class="label" x="1030" y="299" text-anchor="middle" font-size="20" font-weight="900" fill="#ffffff">Medication</text>
+<text class="label" x="1030" y="324" text-anchor="middle" font-size="20" font-weight="900" fill="#ffffff">and injection</text>
+<path class="edge" d="M786 435 C850 435 915 435 935 435"/>
+<rect class="node" x="936" y="390" width="188" height="90" rx="14" fill="#4f7b55"/>
+<text class="label" x="1030" y="429" text-anchor="middle" font-size="20" font-weight="900" fill="#ffffff">Nutrition</text>
+<path class="edge" d="M786 565 C850 565 915 565 935 565"/>
+<rect class="node" x="936" y="520" width="188" height="90" rx="14" fill="#b77a25"/>
+<text class="label" x="1030" y="559" text-anchor="middle" font-size="20" font-weight="900" fill="#ffffff">Psychology</text>
+<text class="label" x="1030" y="584" text-anchor="middle" font-size="20" font-weight="900" fill="#ffffff">and behavior</text>
+<path class="edge" d="M786 695 C850 695 915 695 935 695"/>
+<rect class="node" x="936" y="650" width="188" height="90" rx="14" fill="#a24943"/>
+<text class="label" x="1030" y="689" text-anchor="middle" font-size="20" font-weight="900" fill="#ffffff">Surgery</text>
+<text class="label" x="1030" y="714" text-anchor="middle" font-size="20" font-weight="900" fill="#ffffff">boundary</text>
+<rect class="node" x="470" y="670" width="270" height="82" rx="14" fill="#111827"/>
+<text class="label" x="605" y="704" text-anchor="middle" font-size="22" font-weight="900" fill="#ffffff">Safety gates</text>
+<text class="label" x="605" y="734" text-anchor="middle" font-size="15" fill="#d8e5ec">medication | injection | surgery | psychology</text>
+<rect class="node" x="865" y="735" width="260" height="60" rx="14" fill="#ffffff" stroke="#245f73"/>
+<text class="label" x="995" y="772" text-anchor="middle" font-size="22" font-weight="900" fill="#245f73">KOM-Rx selectable output</text>
+<path class="edge" d="M740 710 C800 730 820 760 865 765"/>
+<path class="edge2" d="M1030 220 C1010 665 730 704 740 710"/>
+<path class="edge2" d="M1030 350 C1010 665 730 704 740 710"/>
+<path class="edge2" d="M1030 480 C1010 665 730 704 740 710"/>
+<path class="edge2" d="M1030 610 C1010 665 730 704 740 710"/>
+<path class="edge2" d="M1030 740 C1010 665 730 704 740 710"/>
+</svg>

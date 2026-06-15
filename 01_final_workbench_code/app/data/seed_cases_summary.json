@@ -1,0 +1,17 @@
+{
+  "total_cases": 120,
+  "default_selected_case": "OAI_SHOWCASE_CASE_LOCKED_001",
+  "source_status_counts": {
+    "real_case_record": 1,
+    "recovered_case_metadata": 38,
+    "synthetic_lightweight_placeholder_for_navigation": 81
+  },
+  "bilateral_fields": "Each seed case now contains planning_scope, left_knee, right_knee and side_specific_summary.",
+  "side_specific_risk_ready": true,
+  "case_families": {
+    "early_education": 30,
+    "active_rehab": 30,
+    "medical_complex": 30,
+    "surgical_referral": 30
+  }
+}

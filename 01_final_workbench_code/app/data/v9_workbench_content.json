@@ -1,0 +1,1960 @@
+{
+  "version": "KOM_LOCAL_CLINICAL_WORKBENCH_GITHUB_WEB_READY_V29_20260615",
+  "release_status": "GITHUB_RELEASE_AND_WEB_DEPLOY_READY_CLINICAL_RELEASE",
+  "case": {
+    "case_id": "OAI_SHOWCASE_PERSISTENT_RX_EVIDENCE_001",
+    "title": "OAI showcase case: bilateral knee osteoarthritis with side-specific planning",
+    "one_line": "67-year-old man with bilateral knee OA: left knee KL4, pain NRS 8 and WOMAC-function burden 62; right knee KL2, pain NRS 4 and milder function burden. KOM-Profile, KOM-Rad and KOM-Risk must retain left and right knees separately; treatment planning prioritizes the left knee while the right knee remains an active monitoring and prevention target.",
+    "anchors": {
+      "Age": "67 years",
+      "Sex": "Male",
+      "BMI": "29.4 kg/m2",
+      "Planning scope": "Both knees; left knee currently drives escalation, right knee requires monitoring",
+      "Left knee KL / symptoms": "KL4, pain NRS 8/10, WOMAC function 62/68",
+      "Right knee KL / symptoms": "KL2, pain NRS 4/10, WOMAC function 30/68",
+      "Fall risk": "Moderate",
+      "Goal": "Walk 3 km safely, avoid repeated injections, and understand whether orthopedic specialist evaluation should be recommended"
+    },
+    "missing": [
+      "Left and right weight-bearing radiographs with alignment review",
+      "Left and right symptom/function anchors at the same visit",
+      "eGFR / creatinine result",
+      "GI ulcer or bleeding history",
+      "Anticoagulant / antiplatelet status",
+      "Complete current medication list",
+      "Structured conservative-treatment history by knee"
+    ]
+  },
+  "standard_cases": [
+    {
+      "id": "early_education",
+      "short_label": "Case 1",
+      "title": "Early education and monitoring case",
+      "purpose": "Early bilateral OA with low pain, locked KL1/KL1, low risk and a prevention-focused education plus home exercise plan.",
+      "burden_label": "Low burden",
+      "demand_label": "Low demand"
+    },
+    {
+      "id": "active_rehab",
+      "short_label": "Case 2",
+      "title": "Activity-goal rehabilitation case",
+      "purpose": "Mild left-predominant OA with a return-to-walking/cycling goal; treatment emphasizes FITT-VP progression and low-impact aerobic choices.",
+      "burden_label": "Low burden",
+      "demand_label": "High demand"
+    },
+    {
+      "id": "medical_complex",
+      "short_label": "Case 3",
+      "title": "Comorbidity and safety-gated conservative case",
+      "purpose": "Symptomatic OA with obesity, CKD/GI/anticoagulant risks, mild anxiety/depression and fall signal; treatment is safety-gated and supervised.",
+      "burden_label": "High burden",
+      "demand_label": "Low demand"
+    },
+    {
+      "id": "surgical_referral",
+      "short_label": "Case 4",
+      "title": "Orthopedic referral-screen and prehabilitation case",
+      "purpose": "Advanced left knee OA with locked KL4/KL2, high symptoms and walking goal; treatment adds referral screening, prehabilitation and missing-data warnings.",
+      "burden_label": "High burden",
+      "demand_label": "High demand"
+    }
+  ],
+  "architecture": [
+    {
+      "title": "KOM-Assess patient assessment subsystem",
+      "summary": "Builds side-specific left-knee and right-knee profiles, structured imaging interpretation and longitudinal risk prediction before treatment planning.",
+      "modules": [
+        {
+          "name": "KOM-Profile",
+          "role": "Patient profile",
+          "detail": "Editable demographics plus left and right knee KL grade, pain, WOMAC/KOOS, strength, balance, medication safety, prior treatment and patient goals."
+        },
+        {
+          "name": "KOM-Rad",
+          "role": "Imaging determination",
+          "detail": "Shows original bilateral OAI radiographs first, then reveals left-knee and right-knee KL / JSN / osteophyte / sclerosis findings after running interpretation."
+        },
+        {
+          "name": "KOM-Risk",
+          "role": "Risk prediction",
+          "detail": "Displays structural progression, TKA-event and symptom/function worsening risk separately for left and right knees."
+        }
+      ]
+    },
+    {
+      "title": "KOM-Treat MDT prescription subsystem",
+      "summary": "Routes the bilateral profile into the evidence graph, specialty agents, safety negotiation and structured clinical report.",
+      "modules": [
+        {
+          "name": "KOM-RAG",
+          "role": "Evidence graph",
+          "detail": "Retrieves guideline, meta-analysis, RCT and contextual evidence from the Evidence Unit database."
+        },
+        {
+          "name": "KOM-MDT",
+          "role": "Specialty treatment board",
+          "detail": "Exercise, nutrition, medication/injection, psychology and orthopedic boundary agents generate specialty prescriptions."
+        },
+        {
+          "name": "KOM-Safe",
+          "role": "Audit and negotiation",
+          "detail": "Routes failed gates back to the responsible specialty agent and records revision, re-audit and adoption status."
+        },
+        {
+          "name": "KOM-Rx",
+          "role": "Structured output",
+          "detail": "Curates patient assessment, MDT prescription, reasoning trail and clinician-review priorities."
+        },
+        {
+          "name": "KOM-Score",
+          "role": "Validation center",
+          "detail": "Separates rule/model validation, expert prescription quality review and safety-event auditing."
+        }
+      ]
+    }
+  ],
+  "profile_form": {
+    "fields": [
+      {
+        "id": "age",
+        "label": "Age",
+        "type": "number",
+        "value": "67",
+        "help": "Chronological age; affects sarcopenia risk, surgical preparation and medication safety."
+      },
+      {
+        "id": "sex",
+        "label": "Sex",
+        "type": "select",
+        "options": [
+          "Male",
+          "Female",
+          "Not recorded"
+        ],
+        "value": "Male",
+        "help": "Used for clinical context and risk interpretation."
+      },
+      {
+        "id": "bmi",
+        "label": "BMI",
+        "type": "number",
+        "value": "29.4",
+        "help": "Body mass index; supports weight-management and risk simulation."
+      },
+      {
+        "id": "target_side",
+        "label": "Planning scope",
+        "type": "select",
+        "options": [
+          "Both knees",
+          "Left knee",
+          "Right knee"
+        ],
+        "value": "Both knees",
+        "help": "Use Both knees for routine KOM assessment. Left and right knee predictions remain separate even when one side drives escalation."
+      },
+      {
+        "id": "left_kl",
+        "label": "Left KL grade",
+        "type": "select",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "value": "4",
+        "help": "Kellgren-Lawrence grade for the left knee: 0 none, 1 doubtful, 2 definite osteophytes, 3 definite joint-space narrowing, 4 severe joint-space narrowing with advanced osteophyte/sclerosis."
+      },
+      {
+        "id": "right_kl",
+        "label": "Right KL grade",
+        "type": "select",
+        "options": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "value": "2",
+        "help": "Kellgren-Lawrence grade for the right knee, used for side-to-side comparison and monitoring."
+      },
+      {
+        "id": "left_nrs",
+        "label": "Left knee pain NRS",
+        "type": "number",
+        "value": "8",
+        "help": "Left knee 0-10 pain score at the current visit; used in left-knee KOM-Risk."
+      },
+      {
+        "id": "right_nrs",
+        "label": "Right knee pain NRS",
+        "type": "number",
+        "value": "4",
+        "help": "Right knee 0-10 pain score at the current visit; used in right-knee KOM-Risk."
+      },
+      {
+        "id": "left_womac_function",
+        "label": "Left WOMAC function",
+        "type": "number",
+        "value": "62",
+        "help": "Left-knee function burden when side-specific scoring is available; higher is worse."
+      },
+      {
+        "id": "right_womac_function",
+        "label": "Right WOMAC function",
+        "type": "number",
+        "value": "30",
+        "help": "Right-knee function burden when side-specific scoring is available; higher is worse."
+      },
+      {
+        "id": "left_progression_status",
+        "label": "Left progression status",
+        "type": "select",
+        "options": [
+          "Advanced OA / progressed",
+          "Suspected progression",
+          "Stable monitoring",
+          "Not recorded"
+        ],
+        "value": "Advanced OA / progressed",
+        "help": "Clinician-recorded left-knee structural or clinical progression state."
+      },
+      {
+        "id": "right_progression_status",
+        "label": "Right progression status",
+        "type": "select",
+        "options": [
+          "Stable monitoring",
+          "Suspected progression",
+          "Advanced OA / progressed",
+          "Not recorded"
+        ],
+        "value": "Stable monitoring",
+        "help": "Clinician-recorded right-knee structural or clinical progression state."
+      },
+      {
+        "id": "nrs",
+        "label": "Overall pain NRS",
+        "type": "number",
+        "value": "8",
+        "help": "Overall 0-10 pain anchor used only when a side-specific pain score is missing."
+      },
+      {
+        "id": "womac_pain",
+        "label": "WOMAC pain",
+        "type": "number",
+        "value": "16",
+        "help": "WOMAC pain subscore; can be calculated from item-level responses.",
+        "calc": "womac"
+      },
+      {
+        "id": "womac_stiffness",
+        "label": "WOMAC stiffness",
+        "type": "number",
+        "value": "6",
+        "help": "WOMAC stiffness subscore; can be calculated from item-level responses.",
+        "calc": "womac"
+      },
+      {
+        "id": "womac_function",
+        "label": "Overall WOMAC function",
+        "type": "number",
+        "value": "62",
+        "help": "Overall WOMAC function fallback; side-specific function values should be entered when available.",
+        "calc": "womac"
+      },
+      {
+        "id": "koos_adl",
+        "label": "KOOS-ADL",
+        "type": "number",
+        "value": "48",
+        "help": "KOOS activities-of-daily-living score from 0 to 100; higher is better.",
+        "calc": "koos"
+      },
+      {
+        "id": "left_strength",
+        "label": "Left quadriceps strength",
+        "type": "text",
+        "value": "MRC 4-/5; isometric knee-extension peak force not measured",
+        "help": "Record left quadriceps MRC grade and, if measured, OAI-style isometric knee-extension peak force.",
+        "calc": "mrc"
+      },
+      {
+        "id": "right_strength",
+        "label": "Right quadriceps strength",
+        "type": "text",
+        "value": "MRC 4+/5; isometric knee-extension peak force not measured",
+        "help": "Record right quadriceps MRC grade and numeric knee-extension strength if measured.",
+        "calc": "mrc"
+      },
+      {
+        "id": "balance",
+        "label": "Balance status",
+        "type": "select",
+        "options": [
+          "Normal",
+          "Single-leg stance 10-20 s",
+          "Single-leg stance <10 s or needs support",
+          "Unknown"
+        ],
+        "value": "Single-leg stance <10 s or needs support",
+        "help": "Balance decline triggers fall-prevention rehabilitation."
+      },
+      {
+        "id": "egfr",
+        "label": "eGFR / creatinine",
+        "type": "select",
+        "options": [
+          "MISSING",
+          "eGFR >=60 and creatinine normal",
+          "eGFR 45-59",
+          "eGFR <45",
+          "Known CKD",
+          "Unknown"
+        ],
+        "value": "MISSING",
+        "help": "Required before routine oral NSAID use and before fixed high-protein targets.",
+        "calc": "egfr"
+      },
+      {
+        "id": "gi_history",
+        "label": "GI ulcer / bleeding",
+        "type": "select",
+        "options": [
+          "MISSING",
+          "No history",
+          "History of ulcer",
+          "History of GI bleeding",
+          "Unknown"
+        ],
+        "value": "MISSING",
+        "help": "Determines oral NSAID gastrointestinal risk.",
+        "calc": "gi"
+      },
+      {
+        "id": "anticoag",
+        "label": "Anticoagulant / antiplatelet status",
+        "type": "select",
+        "options": [
+          "MISSING",
+          "None",
+          "Warfarin",
+          "DOAC",
+          "Aspirin",
+          "Clopidogrel",
+          "Dual antiplatelet therapy",
+          "Unknown"
+        ],
+        "value": "MISSING",
+        "help": "Affects NSAID, injection and perioperative safety."
+      },
+      {
+        "id": "cv_risk",
+        "label": "Cardiovascular risk",
+        "type": "select",
+        "options": [
+          "Low",
+          "Moderate",
+          "High",
+          "Needs review",
+          "Unknown"
+        ],
+        "value": "Needs review",
+        "help": "Used when deciding whether oral NSAID is appropriate.",
+        "calc": "cv"
+      },
+      {
+        "id": "current_meds",
+        "label": "Current medication list",
+        "type": "text",
+        "value": "MISSING",
+        "help": "Medication reconciliation focused on NSAID, injection and perioperative risk; choose explicit none if no key risk medication is present.",
+        "calc": "meds"
+      },
+      {
+        "id": "conservative_history",
+        "label": "Conservative-treatment history",
+        "type": "text",
+        "value": "MISSING",
+        "help": "Record education, self-management, rehabilitation, weight management, topical/oral medication, bracing and previous injections.",
+        "calc": "conservative"
+      },
+      {
+        "id": "quality_goal",
+        "label": "Quality-of-life goal",
+        "type": "text",
+        "value": "Walk 3 km safely, avoid repeated injections, and discuss whether specialist referral should be considered",
+        "help": "Patient-centered treatment goal, such as walking distance, work, sport, sleep, stairs or injection preference."
+      },
+      {
+        "id": "avoid_injection",
+        "label": "Avoid repeated injections",
+        "type": "select",
+        "options": [
+          "Yes",
+          "No",
+          "Uncertain"
+        ],
+        "value": "Yes",
+        "help": "Downgrades routine injection and supports bridge-only injection language."
+      },
+      {
+        "id": "surgery_question",
+        "label": "Referral question",
+        "type": "select",
+        "options": [
+          "Yes",
+          "No",
+          "Uncertain"
+        ],
+        "value": "Yes",
+        "help": "Whether the patient wants to know if orthopedic evaluation should be discussed."
+      },
+      {
+        "id": "exercise_preference",
+        "label": "Exercise preference / access",
+        "type": "text",
+        "value": "Walking goal with supervised prehabilitation; cycling acceptable",
+        "help": "Patient-preferred modalities and practical access. Used to choose walking, cycling, aquatic, resistance or balance modules."
+      },
+      {
+        "id": "gad7",
+        "label": "GAD-7 anxiety signal",
+        "type": "text",
+        "value": "GAD-7 10, moderate anxiety about surgery",
+        "help": "Brief anxiety screen. Positive or moderate signals change communication and referral thresholds."
+      },
+      {
+        "id": "phq9",
+        "label": "PHQ-9 depression signal",
+        "type": "text",
+        "value": "PHQ-9 6, mild depressive symptoms",
+        "help": "Brief depression screen. Item 9 or severe symptoms require urgent mental-health boundary review."
+      },
+      {
+        "id": "sleep_quality",
+        "label": "Sleep quality / insomnia",
+        "type": "text",
+        "value": "Pain-related insomnia most nights",
+        "help": "Sleep disturbance may amplify pain and reduce rehabilitation adherence."
+      },
+      {
+        "id": "pain_catastrophizing",
+        "label": "Pain catastrophizing signal",
+        "type": "text",
+        "value": "High worry about irreversible disability",
+        "help": "Records fear, catastrophizing or avoidance signal for CBT-informed explanation and pacing."
+      },
+      {
+        "id": "nutrition_risk",
+        "label": "Nutrition / metabolic risk",
+        "type": "text",
+        "value": "BMI elevated; weight-loss target must preserve muscle",
+        "help": "Flags obesity, renal disease, malnutrition risk or metabolic issues before nutrition targets are prescribed."
+      },
+      {
+        "id": "surgical_cv_screen",
+        "label": "Cardiovascular pre-referral screen",
+        "type": "text",
+        "value": "Self-reported exertional dyspnea not yet characterized",
+        "help": "Initial patient-reported CV screen before orthopedic referral. This is not a full cardiology clearance."
+      },
+      {
+        "id": "surgical_resp_screen",
+        "label": "Respiratory pre-referral screen",
+        "type": "text",
+        "value": "Former smoker; no spirometry report collected",
+        "help": "Initial patient-reported respiratory screen before referral. Full testing belongs to surgical workup if admitted."
+      },
+      {
+        "id": "skin_dental_infection_screen",
+        "label": "Skin / dental infection screen",
+        "type": "text",
+        "value": "Skin intact; dental status not recorded",
+        "help": "Initial infection-risk screen before referral discussion."
+      },
+      {
+        "id": "weightbearing_alignment_xray",
+        "label": "Weight-bearing alignment imaging",
+        "type": "text",
+        "value": "Weight-bearing AP/lateral radiographs present; long-leg alignment not collected",
+        "help": "Basic imaging status for referral screening; KL is fixed from this profile once entered."
+      },
+      {
+        "id": "knee_rom",
+        "label": "Knee ROM / contracture",
+        "type": "text",
+        "value": "Left 8-100, right 0-125",
+        "help": "Range of motion and flexion contracture screening for prehabilitation and referral readiness."
+      }
+    ]
+  },
+  "followup": [
+    {
+      "time": "Baseline",
+      "collect": "Left and right KL/JSN/osteophyte/sclerosis, side-specific NRS, WOMAC/KOOS, strength, fall risk, medication safety and prior treatment by knee",
+      "decision": "Frame bilateral burden, primary planning knee, monitoring knee and initial MDT plan."
+    },
+    {
+      "time": "2-4 weeks",
+      "collect": "Left/right pain NRS, function, skin reaction, adherence, flare/effusion, exercise tolerance and walking distance",
+      "decision": "Adjust topical/oral medication boundary and rehabilitation progression separately for symptomatic and monitoring knees."
+    },
+    {
+      "time": "6-12 weeks",
+      "collect": "Left/right WOMAC/KOOS change, walking tolerance, quadriceps strength, falls, weight trend and adverse effects",
+      "decision": "Recommend orthopedic specialist evaluation if severe side-specific limitation persists despite structured conservative care."
+    },
+    {
+      "time": "3-6 months",
+      "collect": "Weight, waist, metabolic profile, strength, side-specific symptom trajectory and updated imaging when clinically indicated",
+      "decision": "Review long-term MDT plan, referral readiness, preoperative warning status and patient goals."
+    }
+  ],
+  "imaging": {
+    "primary_asset": "assets/kom_rad/case_9096724_bilateral_original.png",
+    "original_asset": "assets/kom_rad/case_9096724_bilateral_original.png",
+    "left_crop": "assets/kom_rad/case_9096724_patient_left_knee_crop.png",
+    "right_crop": "assets/kom_rad/case_9096724_patient_right_knee_crop.png",
+    "model_note": "Embedded OAK-Net / KOM-Rad structured interpretation module. Outputs are side-specific for left and right knees and require clinician review; they are not an autonomous diagnosis.",
+    "examples": [
+      {
+        "side": "Left knee",
+        "kl": "4",
+        "medial_jsn": "Severe medial joint-space narrowing, compartment grade 3",
+        "lateral_jsn": "Relative lateral-compartment preservation, grade 0-1",
+        "osteophyte": "Severe marginal osteophyte formation, OARSI osteophyte grade 3",
+        "sclerosis": "Definite subchondral sclerosis in the medial compartment",
+        "review": "Severe side-specific structural burden; drives escalation and preoperative warning review."
+      },
+      {
+        "side": "Right knee",
+        "kl": "2",
+        "medial_jsn": "Mild to moderate medial joint-space narrowing, compartment grade 1-2",
+        "lateral_jsn": "Lateral compartment preserved, grade 0-1",
+        "osteophyte": "Mild marginal osteophyte formation, OARSI osteophyte grade 1-2",
+        "sclerosis": "No definite advanced subchondral sclerosis",
+        "review": "Milder OA; still receives risk prediction, prevention, strengthening and follow-up monitoring."
+      }
+    ]
+  },
+  "risk": [
+    {
+      "id": "structural",
+      "name": "Structural progression risk",
+      "horizon": "48 months",
+      "definition": "KL0-3: KL progression >=1 grade or joint-space narrowing worsening; KL4: end-stage structural ceiling rather than KL+1 progression",
+      "model": "KOM longitudinal imaging-risk model",
+      "meaning": "Higher values indicate greater probability of measurable structural worsening in KL0-3 knees. KL4 is handled as a radiographic ceiling state, not a claim that a KL4 knee can progress to KL5.",
+      "drivers": [
+        "Side-specific KL grade",
+        "Side-specific pain NRS",
+        "Side-specific WOMAC function",
+        "BMI"
+      ],
+      "figure": "assets/kom_risk/fig5_SHAP_KL_progression.png"
+    },
+    {
+      "id": "surgery",
+      "name": "TKA-event risk",
+      "horizon": "96 months",
+      "definition": "Recorded knee replacement / TKA-related event",
+      "model": "KOM surgical-event risk model",
+      "meaning": "Higher values support earlier orthopedic specialist evaluation and preoperative warning review for the affected knee.",
+      "drivers": [
+        "Side-specific KL grade",
+        "Persistent pain",
+        "Function loss",
+        "Conservative-treatment history",
+        "Patient demand"
+      ],
+      "figure": "assets/kom_risk/fig5_SHAP_TKR.png"
+    },
+    {
+      "id": "symptom",
+      "name": "Symptom/function worsening risk",
+      "horizon": "24-48 months",
+      "definition": "Clinically meaningful worsening in WOMAC pain or function",
+      "model": "KOM symptom-trajectory model",
+      "meaning": "Higher values indicate need for closer side-specific follow-up, adherence support and rehabilitation adjustment.",
+      "drivers": [
+        "Side-specific pain NRS",
+        "Side-specific WOMAC function",
+        "BMI",
+        "Balance and strength"
+      ],
+      "figure": "assets/kom_risk/fig5_SHAP_WOMAC_pain.png"
+    }
+  ],
+  "evidence": {
+    "count": 3267,
+    "figures": {
+      "network": "assets/graphrag_figures/Figure_1_current_kom_rag_evidence_network.svg",
+      "heatmap": "assets/graphrag_figures/Figure_3_all_domain_multilabel_evidence_heatmap.png",
+      "levels": "assets/graphrag_figures/Figure_5_evidence_level_distribution.png"
+    },
+    "distribution": {
+      "levels": {
+        "L1": 318,
+        "L2": 402,
+        "L3": 717,
+        "L4": 611,
+        "L5": 522,
+        "L6": 438,
+        "L7": 259
+      }
+    },
+    "level_definitions": [
+      [
+        "L1",
+        "Guideline or consensus",
+        "Direct recommendation anchor when current and in scope."
+      ],
+      [
+        "L2",
+        "Systematic review, meta-analysis or NMA",
+        "Evidence synthesis supporting effect, safety or comparative options."
+      ],
+      [
+        "L3",
+        "Randomized or interventional study",
+        "Trial-level calibration for dose, delivery or expected response."
+      ],
+      [
+        "L4",
+        "Observational or prognostic study",
+        "Risk, phenotype and patient-fit support."
+      ],
+      [
+        "L5",
+        "Implementation or qualitative evidence",
+        "Care delivery, adherence and implementation context."
+      ],
+      [
+        "L6",
+        "Protocol or design paper",
+        "Background only unless supported by higher levels."
+      ],
+      [
+        "L7",
+        "Mechanism, commentary or historical context",
+        "Context only; not a direct prescription anchor."
+      ]
+    ],
+    "chains": {
+      "exercise_rehabilitation": {
+        "title": "Exercise and rehabilitation evidence chain",
+        "clinical_question": "For bilateral knee OA with fixed left/right KL grades, symptoms, fall-risk or walking goals, which exercise modules should be selected by guideline core evidence, meta-analysis signal, RCT signal and patient-fit safety?",
+        "layers": [
+          {
+            "name": "Guideline anchor",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00001",
+                "title": "EULAR recommendations for non-pharmacological core management of hip and knee OA: 2023 update",
+                "level": "L1",
+                "year": 2024,
+                "summary": "Guideline anchor for education, therapeutic exercise, weight management and self-management; use as boundary, not as a one-size-fits-all prescription.",
+                "why_selected": "Current European non-pharmacological guideline anchor relevant to exercise and self-management.",
+                "source_link": "https://doi.org/10.1136/ard-2023-225041",
+                "database_domain": "exercise_rehabilitation;education_self_management",
+                "full_evidence_level": "L1 Guideline / consensus",
+                "P_Population": "Adults with hip or knee osteoarthritis managed non-pharmacologically.",
+                "I_Intervention": "Education, exercise, self-management, weight management and assistive strategies.",
+                "C_Comparator": "Guideline consensus process; no single trial comparator.",
+                "O_Outcomes": "Core care recommendation; positive consensus for exercise and self-management.",
+                "Effect_Summary": "Guideline-level recommendation without a pooled effect size; use to define standard-of-care boundaries.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; level=L1; use=Direct anchor.",
+                "directness": "Direct anchor"
+              },
+              {
+                "EU_ID": "KOA-EU-GUIDE-ACR",
+                "title": "2019 ACR/Arthritis Foundation guideline for OA management",
+                "level": "L1",
+                "year": 2020,
+                "summary": "Strong recommendation for exercise and weight loss in overweight/obese knee OA; conditional psychosocial and mind-body options are retained for patient-fit.",
+                "why_selected": "International guideline anchor used to prevent overclaiming from lower-level exercise studies.",
+                "source_link": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10518852/",
+                "database_domain": "exercise_rehabilitation;nutrition_weight_management;psychology_behavior_selfmanagement",
+                "full_evidence_level": "L1 Guideline / consensus",
+                "P_Population": "Adults with hand, hip or knee osteoarthritis; knee OA recommendations are applicable to this workbench.",
+                "I_Intervention": "Exercise, weight loss when indicated, topical/oral NSAID boundaries, self-management, tai chi and selected behavioral options.",
+                "C_Comparator": "Guideline consensus and evidence review.",
+                "O_Outcomes": "Guideline recommendation strength; exercise is a strong recommendation for knee OA.",
+                "Effect_Summary": "Guideline-level recommendation; no single pooled effect size, so use as treatment boundary rather than magnitude claim.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; level=L1; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Meta-analysis / synthesis",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00099",
+                "title": "Comparative efficacy and safety of exercise modalities in knee osteoarthritis: systematic review and network meta-analysis",
+                "level": "L2",
+                "year": 2025,
+                "summary": "217 RCTs and 15,684 participants; aerobic exercise showed the highest overall probability of benefit across pain, function, gait and QoL.",
+                "why_selected": "Adds result-tier signal for prioritizing aerobic modules before choosing walking, cycling or other low-impact delivery.",
+                "source_link": "https://www.bmj.com/content/391/bmj-2025-085242",
+                "database_domain": "exercise_rehabilitation",
+                "full_evidence_level": "L2 Systematic review / meta-analysis / NMA",
+                "P_Population": "217 randomized controlled trials including 15,684 adults with knee osteoarthritis; interventions included aerobic, flexibility, mind-body, neuromotor, strengthening and mixed exercise; databases searched to August 2024.",
+                "I_Intervention": "Network meta-analysis comparing aerobic exercise, flexibility exercise, mind-body exercise, neuromotor exercise, strengthening exercise and mixed exercise.",
+                "C_Comparator": "Control group, usual care or another exercise modality across included RCTs.",
+                "O_Outcomes": "Pain, function, gait performance and quality of life at short term (~4 weeks), mid-term (~12 weeks) and long term (~24 weeks). Positive: aerobic exercise ranked highest overall.",
+                "Effect_Summary": "Quantified synthesis: aerobic exercise vs control improved pain short term SMD -1.10 (95% CI -1.68 to -0.52) and mid-term SMD -1.19 (-1.59 to -0.79), function mid-term SMD 1.78 (1.05 to 2.51), gait mid-term SMD 0.85 (0.55 to 1.14), and QoL short term SMD 1.53 (0.47 to 2.59). Safety was reported in 40/217 studies (18%) with no clear between-modality difference.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; level=L2; use=Direct anchor.",
+                "directness": "Direct anchor"
+              },
+              {
+                "EU_ID": "KOA-EU-00477",
+                "title": "Stationary cycling exercise for knee osteoarthritis: A systematic review and meta-analysis",
+                "level": "L2",
+                "year": 2021,
+                "summary": "11 RCTs/724 participants; cycling reduced pain and improved sport performance, while several daily-function domains were mixed or below MCID.",
+                "why_selected": "Supports optional low-impact cycling when walking flares symptoms, while warning not to overclaim all domains.",
+                "source_link": "https://doi.org/10.1177/0269215520971795",
+                "database_domain": "exercise_rehabilitation",
+                "full_evidence_level": "L2 Systematic review / meta-analysis / NMA",
+                "P_Population": "11 RCTs with 724 participants with knee osteoarthritis; final meta-analysis performed with 8 studies.",
+                "I_Intervention": "Stationary cycling exercise, usually low-impact aerobic cycling on upright or recumbent equipment.",
+                "C_Comparator": "No-exercise control or usual care comparator where reported.",
+                "O_Outcomes": "Pain, function, stiffness, symptoms, sport performance, activities of daily living and quality of life. Positive for pain and sport performance; other domains were statistically mixed or below MCID.",
+                "Effect_Summary": "Quantified synthesis: stationary cycling reduced pain versus no-exercise control (WMD 12.86, 95% CI 6.90 to 18.81) and improved sport performance (WMD 8.06, 95% CI 0.92 to 15.20). Stiffness WMD 11.47 (4.69 to 18.25), function WMD 8.28 (2.44 to 14.11), symptoms WMD 4.15 (-1.87 to 10.18), ADL WMD 6.43 (3.19 to 9.66) and QoL WMD 0.99 (-4.27 to 6.25) did not consistently exceed MCID.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; level=L2; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "RCT / clinical study",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00806",
+                "title": "Strength or aerobic exercise in knee OA: multi-arm randomized controlled trial with 1-year follow-up",
+                "level": "L3",
+                "year": 2023,
+                "summary": "168 adults aged 35-70; 12-week supervised strength or stationary cycling did not significantly improve 1-year KOOS QoL versus usual care, but improved strength and VO2max at 4 months.",
+                "why_selected": "Calibrates expectations and supervision for strength/cycling modules in active rehabilitation cases.",
+                "source_link": "https://doi.org/10.1186/s12891-023-06831-x",
+                "database_domain": "exercise_rehabilitation;psychology_behavior_selfmanagement",
+                "full_evidence_level": "L3 Randomized or interventional study",
+                "P_Population": "168 adults aged 35-70 years with symptomatic and radiographic knee osteoarthritis in a three-arm primary-care RCT.",
+                "I_Intervention": "12 weeks of physiotherapist-supervised strength exercise or aerobic exercise using stationary cycling.",
+                "C_Comparator": "Usual care control.",
+                "O_Outcomes": "Primary: KOOS quality of life at 1 year. Secondary: self-reported function, pain, self-efficacy, quadriceps strength and VO2max at 4 months and 1 year.",
+                "Effect_Summary": "RCT signal: no statistically significant KOOS QoL benefit at 1 year versus usual care for strength exercise (mean difference 6.5, 95% CI -0.9 to 14) or aerobic exercise (5.0, 95% CI -2.7 to 12.8). Both exercise groups improved quadriceps strength and VO2max at 4 months versus usual care.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; level=L3; use=Trial calibration.",
+                "directness": "Direct support"
+              },
+              {
+                "EU_ID": "KOA-EU-01931",
+                "title": "Comparison of aerobic modes combined with resistance training in knee OA: randomized controlled trial",
+                "level": "L3",
+                "year": 2018,
+                "summary": "RCT signal for combining aerobic modes with resistance training over 8 weeks; use for modality choice when walking, cycling or other aerobic options must be adapted.",
+                "why_selected": "Supports modular exercise selection rather than a single generic exercise label.",
+                "source_link": "https://doi.org/10.1016/j.ptsp.2018.04.001",
+                "database_domain": "exercise_rehabilitation",
+                "full_evidence_level": "L3 Randomized or interventional study",
+                "P_Population": "Adults with knee osteoarthritis in an 8-week exercise RCT; detailed age/BMI/sample metadata not fully encoded in the local evidence unit.",
+                "I_Intervention": "Different aerobic modes combined with resistance training.",
+                "C_Comparator": "Alternative aerobic modes plus resistance training.",
+                "O_Outcomes": "Pain, function, KOOS, VAS, chair stand, 6-minute walk and TUG; local metadata classifies the signal as positive.",
+                "Effect_Summary": "Trial-level modality support is present, but exact effect sizes are not in the local metadata row; use only as patient-fit support unless source is opened.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; level=L3; use=Trial calibration.",
+                "directness": "Direct support"
+              }
+            ]
+          },
+          {
+            "name": "Observational patient-fit / risk context",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02114",
+                "title": "Evaluating the diagnostic accuracy of a screening tool for low physical activity in independently ambulating adults with knee osteoarthritis: A prosp...",
+                "level": "L4",
+                "year": 2024,
+                "summary": "Risk/prognosis modifier: use for phenotype, risk and treatment prioritisation.",
+                "why_selected": "Observational evidence is used to phenotype activity, fall risk and function; it is not the primary prescription anchor.",
+                "patient_fit": "Observational evidence is used to phenotype activity, fall risk and function; it is not the primary prescription anchor.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; evidence level=L4; use=Context / support only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Context / support only",
+                "source_link": "https://doi.org/10.1002/pri.2041",
+                "database_domain": "exercise_rehabilitation",
+                "full_evidence_level": "L4 Observational / exposure study"
+              }
+            ]
+          },
+          {
+            "name": "Implementation and clinical context",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02527",
+                "title": "The relationship between knee flexion excursion and mechanical stress during gait in medial knee osteoarthritis",
+                "level": "L5",
+                "year": 2024,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Implementation evidence supports gait, adherence and clinic-delivery details for this high-burden patient.",
+                "patient_fit": "Implementation evidence supports gait, adherence and clinic-delivery details for this high-burden patient.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; evidence level=L5; use=Context / support only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Context / support only",
+                "source_link": "https://doi.org/10.1016/j.clinbiomech.2024.106180",
+                "database_domain": "exercise_rehabilitation",
+                "full_evidence_level": "L5 Other original or unclear design"
+              }
+            ]
+          },
+          {
+            "name": "Protocol or mechanism support",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03177",
+                "title": "Eight weeks of a lower limb resistance training protocol and gait performance in patients with symptomatic mild to moderate knee osteoarthritis",
+                "level": "L6",
+                "year": 2023,
+                "summary": "Protocol/background only: do not use as outcome evidence unless supported by higher tiers.",
+                "why_selected": "Protocol evidence supports safe staged rehabilitation design and stop-rule monitoring.",
+                "patient_fit": "Protocol evidence supports safe staged rehabilitation design and stop-rule monitoring.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; evidence level=L6; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.1016/j.jos.2023.07.007",
+                "database_domain": "exercise_rehabilitation",
+                "full_evidence_level": "L6 Protocol / study design"
+              }
+            ]
+          },
+          {
+            "name": "Background context only",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03247",
+                "title": "Beneficial Effects and Potential Mechanisms of Tai Chi on Lower Limb Osteoarthritis: A Biopsychosocial Perspective",
+                "level": "L7",
+                "year": 2023,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Background evidence is retained only to explain patient experience and fall-related context.",
+                "patient_fit": "Background evidence is retained only to explain patient experience and fall-related context.",
+                "validation": "Patient-fit check: domain=exercise rehabilitation; evidence level=L7; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.1007/s11655-021-3529-9",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;exercise_rehabilitation",
+                "full_evidence_level": "L7 Background / commentary"
+              }
+            ]
+          }
+        ],
+        "freshness_note": "Direct recommendations prioritize L1-L3 current anchors; L4-L7 nodes are shown to make patient-fit context, implementation limits and background assumptions reviewable."
+      },
+      "nutrition_weight_management": {
+        "title": "Nutrition and weight-management evidence chain",
+        "clinical_question": "How should weight reduction be combined with muscle preservation in an older patient with BMI 29.4 and unknown renal function?",
+        "layers": [
+          {
+            "name": "Guideline anchor",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00031",
+                "title": "NICE NG226 osteoarthritis guideline",
+                "level": "L1",
+                "year": 2022,
+                "summary": "Supports weight management and non-pharmacological core treatment in OA.",
+                "why_selected": "Current broad guideline anchor for weight management.",
+                "source_link": "https://www.nice.org.uk/guidance/ng226",
+                "database_domain": "nutrition_weight_management;weight_management",
+                "full_evidence_level": "L1 Guideline / consensus",
+                "patient_fit": "Current broad guideline anchor for weight management.",
+                "validation": "Patient-fit check: domain=nutrition weight management; level=L1; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Meta-analysis / synthesis",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00504",
+                "title": "Weight loss and function outcomes in knee osteoarthritis",
+                "level": "L2",
+                "year": 2021,
+                "summary": "Supports clinically meaningful weight reduction while monitoring muscle and function.",
+                "why_selected": "Adds outcome evidence for weight targets.",
+                "source_link": "https://doi.org/10.1111/obr.13230",
+                "database_domain": "surgery_or_escalation;nutrition_weight_management;exercise_rehabilitation;weight_management",
+                "full_evidence_level": "L2 Systematic review / meta-analysis / NMA",
+                "patient_fit": "Adds outcome evidence for weight targets.",
+                "validation": "Patient-fit check: domain=nutrition weight management; level=L2; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Clinical study",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-STEP9-2024",
+                "title": "Once-weekly semaglutide in persons with obesity and knee osteoarthritis",
+                "level": "L3",
+                "year": 2024,
+                "summary": "STEP 9 RCT: semaglutide 2.4 mg weekly plus lifestyle reduced body weight and WOMAC pain more than placebo in adults with obesity and moderate knee OA.",
+                "why_selected": "Adds a special-population pharmacologic obesity pathway when BMI/obesity indication fits the patient.",
+                "source_link": "https://doi.org/10.1056/NEJMoa2403664",
+                "database_domain": "nutrition_weight_management;weight_management;pharmacologic_or_injection",
+                "full_evidence_level": "L3 Randomized or interventional study",
+                "P_Population": "407 adults with obesity and moderate knee osteoarthritis in a 68-week double-blind randomized trial; BMI obesity indication; Population detail: symptomatic moderate knee OA with obesity; sample/evidence set: 407; extraction status: DOI/PubMed verified targeted abstraction.",
+                "I_Intervention": "semaglutide 2.4 mg once weekly subcutaneous injection plus lifestyle intervention",
+                "C_Comparator": "placebo injection plus lifestyle intervention",
+                "O_Outcomes": "body-weight percent change, WOMAC pain score, and physical function; Signal direction: positive signal.",
+                "Effect_Summary": "Targeted quantitative abstraction: at week 68, body weight changed -13.7% with semaglutide vs -3.2% with placebo; WOMAC pain changed -41.7 vs -27.5 points; between-group differences were statistically significant (P<0.001).",
+                "Safety_or_Contraindication_Note": "Use as obesity pharmacotherapy, not as an autonomous OA analgesic; review pregnancy, pancreatitis/gallbladder disease, MEN2/MTC contraindication, GI adverse effects, cost/coverage and continuation plan.",
+                "Prescription_Use": "B: special-population obesity-treatment option for BMI/obesity-eligible knee OA patients; requires prescribing clinician review and lifestyle co-intervention.",
+                "validation": "Targeted source abstraction: NEJM/PubMed verified; use as obesity-treatment module with clinician prescribing boundary.",
+                "directness": "Direct supporting evidence for selected obese knee OA phenotype"
+              },
+              {
+                "EU_ID": "KOA-EU-01492",
+                "title": "Diet plus exercise for obese adults with knee osteoarthritis",
+                "level": "L3",
+                "year": 2019,
+                "summary": "Supports combined diet and strengthening rather than diet alone.",
+                "why_selected": "Matches BMI and strength-decline phenotype.",
+                "source_link": "https://doi.org/10.1016/j.knee.2021.08.027",
+                "database_domain": "surgery_or_escalation",
+                "full_evidence_level": "L3 Randomized or interventional study",
+                "patient_fit": "Matches BMI and strength-decline phenotype.",
+                "validation": "Patient-fit check: domain=nutrition weight management; level=L3; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Observational patient-fit / risk context",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02149",
+                "title": "Dietary total antioxidant capacity is associated with lower disease severity and inflammatory and oxidative stress biomarkers in patients with knee o...",
+                "level": "L4",
+                "year": 2023,
+                "summary": "Risk/prognosis modifier: use for phenotype, risk and treatment prioritisation.",
+                "why_selected": "Observational evidence helps contextualize BMI, diet quality and metabolic risk; it does not override guideline anchors.",
+                "patient_fit": "Observational evidence helps contextualize BMI, diet quality and metabolic risk; it does not override guideline anchors.",
+                "validation": "Patient-fit check: domain=nutrition weight management; evidence level=L4; use=Context / support only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Context / support only",
+                "source_link": "https://doi.org/10.1186/s41043-023-00450-x",
+                "database_domain": "nutrition_weight_management;weight_management",
+                "full_evidence_level": "L4 Observational / exposure study"
+              }
+            ]
+          },
+          {
+            "name": "Implementation and clinical context",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02547",
+                "title": "Personalized Nutritional Strategies to Reduce Knee Osteoarthritis Severity and Ameliorate Sarcopenic Obesity Indices: A Practical Guide in an Orthope...",
+                "level": "L5",
+                "year": 2023,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Implementation evidence supports practical nutrition counseling and monitoring.",
+                "patient_fit": "Implementation evidence supports practical nutrition counseling and monitoring.",
+                "validation": "Patient-fit check: domain=nutrition weight management; evidence level=L5; use=Context / support only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Context / support only",
+                "source_link": "https://doi.org/10.3390/nu15143085",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;nutrition_weight_management;exercise_rehabilitation;weight_management",
+                "full_evidence_level": "L5 Other original or unclear design"
+              }
+            ]
+          },
+          {
+            "name": "Protocol or mechanism support",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03207",
+                "title": "Outcomes of a conservative care program for knee osteoarthritis through translation of research into practice",
+                "level": "L6",
+                "year": 2020,
+                "summary": "Protocol/background only: do not use as outcome evidence unless supported by higher tiers.",
+                "why_selected": "Protocol evidence is used only for care-pathway design and monitoring structure.",
+                "patient_fit": "Protocol evidence is used only for care-pathway design and monitoring structure.",
+                "validation": "Patient-fit check: domain=nutrition weight management; evidence level=L6; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.1002/msc.1465",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;nutrition_weight_management;surgery_or_escalation;exercise_rehabilitation;weight_management;self_management",
+                "full_evidence_level": "L6 Protocol / study design"
+              }
+            ]
+          },
+          {
+            "name": "Background context only",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03250",
+                "title": "A Stepped Exercise Program for Patients With Knee Osteoarthritis",
+                "level": "L7",
+                "year": 2021,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Background evidence is context only; direct nutrition targets remain anchored to L1-L3 evidence.",
+                "patient_fit": "Background evidence is context only; direct nutrition targets remain anchored to L1-L3 evidence.",
+                "validation": "Patient-fit check: domain=nutrition weight management; evidence level=L7; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.7326/p20-0013",
+                "database_domain": "exercise_rehabilitation;education_self_management;self_management",
+                "full_evidence_level": "L7 Background / commentary"
+              }
+            ]
+          }
+        ],
+        "freshness_note": "Direct recommendations prioritize L1-L3 current anchors; L4-L7 nodes are shown to make patient-fit context, implementation limits and background assumptions reviewable."
+      },
+      "pharmacologic_or_injection": {
+        "title": "Medication and injection evidence chain",
+        "clinical_question": "Which analgesic and injection options are appropriate when renal, GI and anticoagulant safety data are incomplete?",
+        "layers": [
+          {
+            "name": "Guideline anchor",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00031",
+                "title": "NICE NG226 osteoarthritis guideline",
+                "level": "L1",
+                "year": 2022,
+                "summary": "Supports topical NSAID consideration and safety-gated oral NSAID use.",
+                "why_selected": "Current medication safety anchor for OA management.",
+                "source_link": "https://www.nice.org.uk/guidance/ng226",
+                "database_domain": "nutrition_weight_management;weight_management",
+                "full_evidence_level": "L1 Guideline / consensus",
+                "patient_fit": "Current medication safety anchor for OA management.",
+                "validation": "Patient-fit check: domain=pharmacologic or injection; level=L1; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Meta-analysis / synthesis",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00620",
+                "title": "Topical versus oral NSAIDs for knee osteoarthritis pain",
+                "level": "L2",
+                "year": 2021,
+                "summary": "Supports topical NSAID as a lower systemic-exposure option.",
+                "why_selected": "Matches missing renal/GI/anticoagulant data.",
+                "source_link": "https://doi.org/10.1007/s00590-019-02540-1",
+                "database_domain": "surgery_or_escalation",
+                "full_evidence_level": "L2 Systematic review / meta-analysis / NMA",
+                "patient_fit": "Matches missing renal/GI/anticoagulant data.",
+                "validation": "Patient-fit check: domain=pharmacologic or injection; level=L2; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "RCT / clinical study",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-STEP9-2024",
+                "title": "Once-weekly semaglutide in persons with obesity and knee osteoarthritis",
+                "level": "L3",
+                "year": 2024,
+                "summary": "STEP 9 RCT: semaglutide 2.4 mg weekly plus lifestyle reduced body weight and WOMAC pain more than placebo in adults with obesity and moderate knee OA.",
+                "why_selected": "Adds a special-population pharmacologic obesity pathway when BMI/obesity indication fits the patient.",
+                "source_link": "https://doi.org/10.1056/NEJMoa2403664",
+                "database_domain": "nutrition_weight_management;weight_management;pharmacologic_or_injection",
+                "full_evidence_level": "L3 Randomized or interventional study",
+                "P_Population": "407 adults with obesity and moderate knee osteoarthritis in a 68-week double-blind randomized trial; BMI obesity indication; Population detail: symptomatic moderate knee OA with obesity; sample/evidence set: 407; extraction status: DOI/PubMed verified targeted abstraction.",
+                "I_Intervention": "semaglutide 2.4 mg once weekly subcutaneous injection plus lifestyle intervention",
+                "C_Comparator": "placebo injection plus lifestyle intervention",
+                "O_Outcomes": "body-weight percent change, WOMAC pain score, and physical function; Signal direction: positive signal.",
+                "Effect_Summary": "Targeted quantitative abstraction: at week 68, body weight changed -13.7% with semaglutide vs -3.2% with placebo; WOMAC pain changed -41.7 vs -27.5 points; between-group differences were statistically significant (P<0.001).",
+                "Safety_or_Contraindication_Note": "Use as obesity pharmacotherapy, not as an autonomous OA analgesic; review pregnancy, pancreatitis/gallbladder disease, MEN2/MTC contraindication, GI adverse effects, cost/coverage and continuation plan.",
+                "Prescription_Use": "B: special-population obesity-treatment option for BMI/obesity-eligible knee OA patients; requires prescribing clinician review and lifestyle co-intervention.",
+                "validation": "Targeted source abstraction: NEJM/PubMed verified; use as obesity-treatment module with clinician prescribing boundary.",
+                "directness": "Direct supporting evidence for selected obese knee OA phenotype"
+              },
+              {
+                "EU_ID": "KOA-EU-01134",
+                "title": "Intra-articular corticosteroid and viscosupplement options in knee OA",
+                "level": "L3",
+                "year": 2020,
+                "summary": "Supports short-term bridge injection only in selected flare or effusion contexts.",
+                "why_selected": "Clarifies injection boundaries rather than routine repeated use.",
+                "source_link": "https://doi.org/10.3390/jcm11237184",
+                "database_domain": "exercise_rehabilitation",
+                "full_evidence_level": "L3 Randomized or interventional study",
+                "patient_fit": "Clarifies injection boundaries rather than routine repeated use.",
+                "validation": "Patient-fit check: domain=pharmacologic or injection; level=L3; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Observational patient-fit / risk context",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02146",
+                "title": "Delayed timing of physical therapy initiation increases the risk of future opioid use in individuals with knee osteoarthritis: a real-world cohort st...",
+                "level": "L4",
+                "year": 2023,
+                "summary": "Risk/prognosis modifier: use for phenotype, risk and treatment prioritisation.",
+                "why_selected": "Observational evidence is used for risk and utilization context, not as direct medication authorization.",
+                "patient_fit": "Observational evidence is used for risk and utilization context, not as direct medication authorization.",
+                "validation": "Patient-fit check: domain=pharmacologic or injection; evidence level=L4; use=Context / support only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Context / support only",
+                "source_link": "https://doi.org/10.1136/bjsports-2022-106044",
+                "database_domain": "pharmacologic_or_injection;exercise_rehabilitation",
+                "full_evidence_level": "L4 Observational / exposure study"
+              }
+            ]
+          },
+          {
+            "name": "Implementation and clinical context",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02960",
+                "title": "OARSI guidelines for the non-surgical management of knee, hip, and polyarticular osteoarthritis",
+                "level": "L5",
+                "year": 2019,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Implementation evidence supports medication reconciliation and shared decision-making.",
+                "patient_fit": "Implementation evidence supports medication reconciliation and shared decision-making.",
+                "validation": "Patient-fit check: domain=pharmacologic or injection; evidence level=L5; use=Context / support only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Context / support only",
+                "source_link": "https://doi.org/10.1016/j.joca.2019.06.011",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;nutrition_weight_management;surgery_or_escalation;exercise_rehabilitation;pharmacologic_or_injection;weight_management;self_management",
+                "full_evidence_level": "L5 Other original or unclear design"
+              }
+            ]
+          },
+          {
+            "name": "Protocol or mechanism support",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03199",
+                "title": "The Role of Knee Position in Blood Loss and Enhancement of Recovery after Total Knee Arthroplasty",
+                "level": "L6",
+                "year": 2021,
+                "summary": "Protocol/background only: do not use as outcome evidence unless supported by higher tiers.",
+                "why_selected": "Protocol/mechanism evidence is used only to explain safety monitoring and peri-treatment caution.",
+                "patient_fit": "Protocol/mechanism evidence is used only to explain safety monitoring and peri-treatment caution.",
+                "validation": "Patient-fit check: domain=pharmacologic or injection; evidence level=L6; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.1055/s-0040-1708042",
+                "database_domain": "pharmacologic_or_injection;surgery_or_escalation;exercise_rehabilitation",
+                "full_evidence_level": "L6 Protocol / study design"
+              }
+            ]
+          },
+          {
+            "name": "Background context only",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03250",
+                "title": "A Stepped Exercise Program for Patients With Knee Osteoarthritis",
+                "level": "L7",
+                "year": 2021,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Background evidence is context only and never a direct medication anchor.",
+                "patient_fit": "Background evidence is context only and never a direct medication anchor.",
+                "validation": "Patient-fit check: domain=pharmacologic or injection; evidence level=L7; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.7326/p20-0013",
+                "database_domain": "exercise_rehabilitation;education_self_management;self_management",
+                "full_evidence_level": "L7 Background / commentary"
+              }
+            ]
+          }
+        ],
+        "freshness_note": "Direct recommendations prioritize L1-L3 current anchors; L4-L7 nodes are shown to make patient-fit context, implementation limits and background assumptions reviewable."
+      },
+      "psychology_behavior_selfmanagement": {
+        "title": "Psychology, behavior and self-management evidence chain",
+        "clinical_question": "How should pain education, screening and behavior support be implemented without psychologizing structural OA?",
+        "layers": [
+          {
+            "name": "Guideline anchor",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00001",
+                "title": "EULAR non-pharmacological core management update",
+                "level": "L1",
+                "year": 2024,
+                "summary": "Supports education, self-management and shared decision-making.",
+                "why_selected": "Current behavioral and self-management anchor.",
+                "source_link": "https://doi.org/10.1136/ard-2023-225041",
+                "database_domain": "assistive_support",
+                "full_evidence_level": "L1 Guideline / consensus",
+                "patient_fit": "Current behavioral and self-management anchor.",
+                "validation": "Patient-fit check: domain=psychology behavior selfmanagement; level=L1; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Synthesis",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00738",
+                "title": "Pain coping and self-management interventions in osteoarthritis",
+                "level": "L2",
+                "year": 2021,
+                "summary": "Supports screening, pacing, sleep review and adherence support.",
+                "why_selected": "Adds concrete behavioral targets.",
+                "source_link": "https://doi.org/10.1177/0363546514533777",
+                "database_domain": "nutrition_weight_management;weight_management;surgery_or_escalation;pharmacologic_or_injection",
+                "full_evidence_level": "L2 Systematic review / meta-analysis / NMA",
+                "patient_fit": "Adds concrete behavioral targets.",
+                "validation": "Patient-fit check: domain=psychology behavior selfmanagement; level=L2; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "RCT / clinical study",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-01059",
+                "title": "The effectiveness of a randomised clinical trial of PLE(2) NO self-management and exercise programme for knee osteoarthritis to improve self-efficacy",
+                "level": "L3",
+                "year": 2022,
+                "summary": "Trial calibration: use for dose, comparator and expected effect in matched patients.",
+                "why_selected": "Clinical-study evidence adds practical intervention or pathway detail and remains subordinate to current safety gates.",
+                "patient_fit": "Clinical-study evidence adds practical intervention or pathway detail and remains subordinate to current safety gates.",
+                "validation": "Patient-fit check: domain=psychology behavior selfmanagement; evidence level=L3; use=Direct supporting evidence. Current guideline anchors and safety gates remain primary.",
+                "directness": "Direct supporting evidence",
+                "source_link": "https://doi.org/10.1002/msc.1573",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;exercise_rehabilitation;self_management",
+                "full_evidence_level": "L3 Randomized or interventional study"
+              }
+            ]
+          },
+          {
+            "name": "Clinical implementation",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02349",
+                "title": "Self-management program outcomes in osteoarthritis",
+                "level": "L4",
+                "year": 2020,
+                "summary": "Contextual support for education delivery and adherence monitoring.",
+                "why_selected": "Used as implementation context, not a direct prescription anchor.",
+                "source_link": "https://doi.org/10.3390/jcm9072294",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;surgery_or_escalation;exercise_rehabilitation;self_management",
+                "full_evidence_level": "L4 Observational / exposure study",
+                "patient_fit": "Used as implementation context, not a direct prescription anchor.",
+                "validation": "Patient-fit check: domain=psychology behavior selfmanagement; level=L4; use=Context / support only.",
+                "directness": "Context / support only"
+              }
+            ]
+          },
+          {
+            "name": "Implementation and clinical context",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02867",
+                "title": "The Active with OsteoArthritis (AktivA) Physiotherapy Implementation Model: A Patient Education, Supervised Exercise and Self-Management Program for ...",
+                "level": "L5",
+                "year": 2020,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Implementation evidence helps choose practical behavior-support delivery.",
+                "patient_fit": "Implementation evidence helps choose practical behavior-support delivery.",
+                "validation": "Patient-fit check: domain=psychology behavior selfmanagement; evidence level=L5; use=Context / support only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Context / support only",
+                "source_link": "https://doi.org/10.3390/jcm9103112",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;exercise_rehabilitation;self_management",
+                "full_evidence_level": "L5 Other original or unclear design"
+              }
+            ]
+          },
+          {
+            "name": "Protocol or mechanism support",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03172",
+                "title": "From sceptic to believer: Acceptability of cognitive muscular therapy(TM) , a new intervention for knee osteoarthritis",
+                "level": "L6",
+                "year": 2023,
+                "summary": "Protocol/background only: do not use as outcome evidence unless supported by higher tiers.",
+                "why_selected": "Protocol evidence supports structured screening and follow-up workflows.",
+                "patient_fit": "Protocol evidence supports structured screening and follow-up workflows.",
+                "validation": "Patient-fit check: domain=psychology behavior selfmanagement; evidence level=L6; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.1002/msc.1842",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;self_management",
+                "full_evidence_level": "L6 Protocol / study design"
+              }
+            ]
+          },
+          {
+            "name": "Background context only",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03245",
+                "title": "Fall experiences from the perspectives of people with osteoarthritis: in their own words",
+                "level": "L7",
+                "year": 2024,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Background evidence explains patient experience and is not used as direct treatment evidence.",
+                "patient_fit": "Background evidence explains patient experience and is not used as direct treatment evidence.",
+                "validation": "Patient-fit check: domain=psychology behavior selfmanagement; evidence level=L7; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.1080/09638288.2022.2156629",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;exercise_rehabilitation;self_management",
+                "full_evidence_level": "L7 Background / commentary"
+              }
+            ]
+          }
+        ],
+        "freshness_note": "Direct recommendations prioritize L1-L3 current anchors; L4-L7 nodes are shown to make patient-fit context, implementation limits and background assumptions reviewable."
+      },
+      "surgery_or_escalation": {
+        "title": "Orthopedic boundary and escalation evidence chain",
+        "clinical_question": "Should specialist evaluation be discussed for KL4, NRS8, severe function limitation and uncertain conservative-treatment history?",
+        "layers": [
+          {
+            "name": "Guideline anchor",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00046",
+                "title": "AAOS management of osteoarthritis of the knee guideline",
+                "level": "L1",
+                "year": 2021,
+                "summary": "Supports evidence-based non-arthroplasty management and escalation boundaries.",
+                "why_selected": "Current orthopedic guideline anchor.",
+                "source_link": "https://doi.org/10.1016/j.jbspin.2020.105114",
+                "database_domain": "nutrition_weight_management;weight_management;surgery_or_escalation",
+                "full_evidence_level": "L1 Guideline / consensus",
+                "patient_fit": "Current orthopedic guideline anchor.",
+                "validation": "Patient-fit check: domain=surgery or escalation; level=L1; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Meta-analysis / synthesis",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00135",
+                "title": "Risk analysis of periprosthetic knee joint infection (PJI) in total knee arthroplasty after preoperative corticosteroid injection: a systematic revie...",
+                "level": "L2",
+                "year": 2023,
+                "summary": "Evidence synthesis: use to rank intervention families and expected benefit/safety.",
+                "why_selected": "Synthesis evidence adds effect-size and comparative context without replacing current guideline boundaries.",
+                "patient_fit": "Synthesis evidence adds effect-size and comparative context without replacing current guideline boundaries.",
+                "validation": "Patient-fit check: domain=surgery or escalation; evidence level=L2; use=Direct supporting evidence. Current guideline anchors and safety gates remain primary.",
+                "directness": "Direct supporting evidence",
+                "source_link": "https://doi.org/10.1007/s00402-022-04532-z",
+                "database_domain": "pharmacologic_or_injection;surgery_or_escalation",
+                "full_evidence_level": "L2 Systematic review / meta-analysis / NMA"
+              }
+            ]
+          },
+          {
+            "name": "Guideline anchor",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-00031",
+                "title": "NICE NG226 osteoarthritis guideline",
+                "level": "L1",
+                "year": 2022,
+                "summary": "Supports referral discussion when quality of life is substantially affected and conservative care is insufficient or uncertain.",
+                "why_selected": "Defines referral discussion without AI choosing surgery type.",
+                "source_link": "https://www.nice.org.uk/guidance/ng226",
+                "database_domain": "nutrition_weight_management;weight_management",
+                "full_evidence_level": "L1 Guideline / consensus",
+                "patient_fit": "Defines referral discussion without AI choosing surgery type.",
+                "validation": "Patient-fit check: domain=surgery or escalation; level=L1; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Clinical study",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-01880",
+                "title": "Preoperative optimization and function in advanced knee osteoarthritis",
+                "level": "L3",
+                "year": 2020,
+                "summary": "Supports optimizing BMI, falls, medication safety and rehabilitation readiness before surgical pathway decisions.",
+                "why_selected": "Matches the high-burden referral phenotype.",
+                "source_link": "https://doi.org/10.1177/0269215517718892",
+                "database_domain": "psychology_behavior_selfmanagement;education_self_management;exercise_rehabilitation;self_management",
+                "full_evidence_level": "L3 Randomized or interventional study",
+                "patient_fit": "Matches the high-burden referral phenotype.",
+                "validation": "Patient-fit check: domain=surgery or escalation; level=L3; use=Direct anchor.",
+                "directness": "Direct anchor"
+              }
+            ]
+          },
+          {
+            "name": "Observational patient-fit / risk context",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02200",
+                "title": "Micro Electromechanical System Navigation Assists Femoral Extramedullary Alignment Osteotomy in Total Knee Arthroplasty: A Single-Blind Randomizing S...",
+                "level": "L4",
+                "year": 2023,
+                "summary": "Risk/prognosis modifier: use for phenotype, risk and treatment prioritisation.",
+                "why_selected": "Observational evidence contextualizes severity, function and care-pathway risk.",
+                "patient_fit": "Observational evidence contextualizes severity, function and care-pathway risk.",
+                "validation": "Patient-fit check: domain=surgery or escalation; evidence level=L4; use=Context / support only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Context / support only",
+                "source_link": "https://doi.org/10.1111/os.13842",
+                "database_domain": "surgery_or_escalation",
+                "full_evidence_level": "L4 Observational / exposure study"
+              }
+            ]
+          },
+          {
+            "name": "Implementation and clinical context",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-02529",
+                "title": "Effectiveness of Kinematic Alignment-Total Knee Arthroplasty in Treating Preoperative Varus and Valgus Deformities in Patients With Knee Osteoarthrit...",
+                "level": "L5",
+                "year": 2024,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Implementation evidence supports preoperative optimization and referral documentation.",
+                "patient_fit": "Implementation evidence supports preoperative optimization and referral documentation.",
+                "validation": "Patient-fit check: domain=surgery or escalation; evidence level=L5; use=Context / support only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Context / support only",
+                "source_link": "https://doi.org/10.7759/cureus.53230",
+                "database_domain": "surgery_or_escalation",
+                "full_evidence_level": "L5 Other original or unclear design"
+              }
+            ]
+          },
+          {
+            "name": "Protocol or mechanism support",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03181",
+                "title": "A prospective comparison of total knee arthroplasty using ultra-congruent, condylar-stabilizing, and posterior-stabilized devices implanted with kine...",
+                "level": "L6",
+                "year": 2023,
+                "summary": "Protocol/background only: do not use as outcome evidence unless supported by higher tiers.",
+                "why_selected": "Protocol evidence is used only for preoperative planning context.",
+                "patient_fit": "Protocol evidence is used only for preoperative planning context.",
+                "validation": "Patient-fit check: domain=surgery or escalation; evidence level=L6; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.1007/s00167-022-07206-w",
+                "database_domain": "surgery_or_escalation",
+                "full_evidence_level": "L6 Protocol / study design"
+              }
+            ]
+          },
+          {
+            "name": "Background context only",
+            "items": [
+              {
+                "EU_ID": "KOA-EU-03252",
+                "title": "Unicompartmental Knee Arthroplasty: US and Global Perspectives",
+                "level": "L7",
+                "year": 2020,
+                "summary": "Supportive evidence: retain for routing, but require higher-tier confirmation before prescription.",
+                "why_selected": "Background evidence explains procedure context and is not a direct surgical decision anchor.",
+                "patient_fit": "Background evidence explains procedure context and is not a direct surgical decision anchor.",
+                "validation": "Patient-fit check: domain=surgery or escalation; evidence level=L7; use=Background only. Direct prescription decisions remain anchored to L1-L3 evidence and current safety gates.",
+                "directness": "Background only",
+                "source_link": "https://doi.org/10.1016/j.ocl.2019.11.010",
+                "database_domain": "surgery_or_escalation",
+                "full_evidence_level": "L7 Background / commentary"
+              }
+            ]
+          }
+        ],
+        "freshness_note": "Direct recommendations prioritize L1-L3 current anchors; L4-L7 nodes are shown to make patient-fit context, implementation limits and background assumptions reviewable."
+      }
+    }
+  },
+  "agents": [
+    {
+      "id": "exercise_rehab",
+      "name": "Exercise and rehabilitation agent",
+      "specialty_rule": "Output must use complete FITT-VP and then classify options by evidence result tier: guideline core, meta-analysis/synthesis signal, RCT/modality signal, patient preference and safety stop rules.",
+      "inputs": [
+        "Left/right KL grade",
+        "Left/right pain NRS",
+        "Left/right WOMAC/KOOS",
+        "Left/right quadriceps strength",
+        "Balance",
+        "Quality goal"
+      ],
+      "reasoning": [
+        "Left KL4 and NRS8 require low-impact loading and flare rules.",
+        "Right KL2 still requires strengthening and progression monitoring.",
+        "Moderate fall risk requires balance practice and environmental safety.",
+        "Quadriceps weakness requires progressive resistance training on both sides with side-specific tolerance."
+      ],
+      "prescription": {
+        "content": [
+          [
+            "Walking or treadmill intervals",
+            "3-5 days/week",
+            "RPE 3-5/10, pain during exercise <=5/10",
+            "10-30 min/session split into intervals",
+            "Flat walking, treadmill or indoor route",
+            "Start 50-90 min/week, progress toward 150 min/week if stable",
+            "Increase duration first, then pace; reduce 24-48 h after flare"
+          ],
+          [
+            "Stationary cycling",
+            "2-4 days/week",
+            "Low-to-moderate resistance, cadence comfortable",
+            "15-30 min/session",
+            "Upright or recumbent bike adjusted to avoid deep flexion pain",
+            "30-120 min/week",
+            "Progress minutes before resistance; stop for swelling or night-pain increase"
+          ],
+          [
+            "Progressive resistance",
+            "2-3 days/week",
+            "Start low load, RPE 4-6/10",
+            "20-35 min/session",
+            "Quadriceps, hip abductors, hamstrings, calf, sit-to-stand",
+            "1-3 sets of 8-12 reps",
+            "Add one set or small load only if next-day pain/function stable"
+          ],
+          [
+            "Neuromotor / balance",
+            "3-5 days/week",
+            "Supported, low fear, no unsafe instability",
+            "8-15 min/session",
+            "Tandem stance, supported single-leg stance, step control, gait drills",
+            "Short daily practice preferred",
+            "Remove hand support gradually; supervise if stance <10 s"
+          ],
+          [
+            "Aquatic bridge",
+            "1-3 days/week if available",
+            "Comfortable exertion, water support",
+            "20-40 min/session",
+            "Water walking, ROM, cycling-like movements",
+            "As access allows",
+            "Use when land walking flares; avoid if wound/infection risk"
+          ]
+        ],
+        "stop_rules": [
+          "New swelling/effusion",
+          "Night pain escalation",
+          "Fall/near fall",
+          "Pain >5/10 during exercise or worse function next day",
+          "Chest pain, unexplained dyspnea or dizziness"
+        ],
+        "avoid": [
+          "Running or jumping",
+          "Deep loaded squats",
+          "Twisting pivots",
+          "Sudden step-count increase"
+        ],
+        "result_tiers": [
+          {
+            "tier": "Guideline core",
+            "message": "Therapeutic exercise is offered to all OA patients and tailored to need: local strengthening plus general aerobic fitness."
+          },
+          {
+            "tier": "Meta-analysis / synthesis signal",
+            "message": "Progressive strengthening, low-impact aerobic training and supervised programs are prioritized when pain/function burden or adherence risk is present."
+          },
+          {
+            "tier": "RCT / modality signal",
+            "message": "Stationary cycling, aquatic exercise and neuromotor/balance training are surfaced as optional modules for patients who flare with walking, fear falling or need low-impact progression."
+          },
+          {
+            "tier": "Patient-fit safety",
+            "message": "KL grade is fixed; progression changes load, duration, supervision and modality rather than pretending structure can be adjusted by a slider."
+          }
+        ]
+      }
+    },
+    {
+      "id": "nutrition",
+      "name": "Weight, nutrition and metabolism agent",
+      "specialty_rule": "Nutrition target must be explicit: 5-10% weight reduction when BMI is elevated, paired with muscle preservation, resistance training and renal-function gating before fixed protein targets.",
+      "inputs": [
+        "BMI",
+        "Age",
+        "Strength",
+        "eGFR",
+        "Metabolic risk",
+        "Exercise plan"
+      ],
+      "reasoning": [
+        "BMI 29.4 supports an initial 5% weight-loss target.",
+        "Age 67 and bilateral knee symptoms require muscle preservation rather than crash dieting.",
+        "Unknown renal function prevents fixed high-protein dosing until eGFR is known.",
+        "Nutrition target is tied to pain, walking tolerance, waist/weight trend and strength monitoring."
+      ],
+      "prescription": {
+        "target": "Nutrition target: reduce baseline weight by 5% over 3-6 months when BMI is elevated; consider 5-10% only if tolerated, strength is preserved and renal/metabolic review is acceptable.",
+        "monitoring": "Track body weight weekly, waist monthly, left/right pain and walking tolerance every 2-4 weeks, and strength/function at 6-12 weeks.",
+        "protein_boundary": "After eGFR review, distribute protein across meals to support resistance training; avoid fixed high-protein dosing while renal function is unknown.",
+        "plate": "Half non-starchy vegetables, one quarter lean protein after renal review, one quarter whole grains or starchy vegetables, with unsaturated fat in small amounts.",
+        "eat_more": [
+          "Leafy greens, broccoli, peppers, tomatoes, mushrooms, cucumber and carrots",
+          "Legumes and soy foods: beans, lentils, chickpeas, tofu or edamame",
+          "Fish, skinless poultry, eggs or low-fat dairy if tolerated and appropriate after renal review",
+          "Whole grains or starchy vegetables in controlled portions: oats, brown rice, whole-wheat noodles, corn, potato or sweet potato",
+          "Nuts or olive/rapeseed oil in small portions"
+        ],
+        "eat_less": [
+          "Sugar-sweetened beverages",
+          "Deep-fried foods",
+          "Ultra-processed snacks",
+          "Large late-night meals",
+          "Crash dieting"
+        ],
+        "sample_day": [
+          "Breakfast: oats or whole-grain staple plus egg or yogurt and fruit.",
+          "Lunch: two vegetables, tofu/fish/chicken or legumes, and a controlled whole-grain portion.",
+          "Dinner: vegetable-forward meal with protein, no sugary drink, and smaller late-night starch portion.",
+          "Exercise days: distribute protein across meals after renal review and pair nutrition with resistance training."
+        ],
+        "result_tiers": [
+          {
+            "tier": "Guideline core",
+            "message": "Weight management is offered when BMI is elevated; any weight loss may help, and larger targets can help more if muscle is preserved."
+          },
+          {
+            "tier": "RCT special-population signal",
+            "message": "For BMI/obesity-eligible knee OA patients, STEP 9 supports considering semaglutide 2.4 mg weekly as obesity pharmacotherapy with lifestyle intervention and clinician prescribing boundaries."
+          },
+          {
+            "tier": "Patient-fit safety",
+            "message": "CKD, frailty or malnutrition risk changes protein targets and requires renal/metabolic review before fixed dosing."
+          },
+          {
+            "tier": "Behavioral implementation",
+            "message": "Food examples are made selectable so the clinician can prescribe practical patient-preferred options, not only abstract categories."
+          }
+        ]
+      }
+    },
+    {
+      "id": "medication",
+      "name": "Medication and injection agent",
+      "specialty_rule": "Medication output must name specific medicines, dose/frequency, duration, contraindication gates and monitoring; oral NSAID is deferred or conditional until renal, GI, anticoagulant/current medication and cardiovascular review is complete.",
+      "inputs": [
+        "Left/right pain NRS",
+        "eGFR",
+        "GI bleeding history",
+        "Anticoagulants / antiplatelets",
+        "Current medications",
+        "Cardiovascular risk",
+        "Injection preference"
+      ],
+      "reasoning": [
+        "High left-knee pain requires analgesic support.",
+        "Right-knee symptoms are milder and should not receive escalation copied from the left knee.",
+        "Missing safety data prevents routine oral NSAID.",
+        "Avoiding repeated injections downgrades routine injection."
+      ],
+      "prescription": {
+        "safety_block": [
+          "Renal function / eGFR: MISSING",
+          "GI ulcer or bleeding history: MISSING",
+          "Anticoagulant / antiplatelet status: MISSING",
+          "Current medication list: MISSING",
+          "Cardiovascular risk: needs review"
+        ],
+        "items": [
+          "Diclofenac 1% gel: apply 4 g to the painful knee up to four times daily for 2-4 weeks; do not exceed local label limits, avoid broken skin and monitor rash or irritation.",
+          "Celecoxib 100 mg twice daily or 200 mg once daily may be considered only after clinician review of eGFR, GI bleeding risk, anticoagulant/antiplatelet status, current medications and cardiovascular risk; use the lowest effective dose for the shortest duration.",
+          "Naproxen 250 mg twice daily is an alternative oral NSAID after the same safety review; do not combine with another oral NSAID and consider gastroprotection when risk requires it.",
+          "Ibuprofen 400 mg every 6-8 hours as needed is a short-course option only after safety review; avoid combining with aspirin, anticoagulants or other NSAIDs without clinician direction.",
+          "Acetaminophen/paracetamol 500-1000 mg every 6-8 hours as needed can be used for short-term episodic pain within local daily dose limits; reduce limits with liver disease, alcohol misuse or frailty.",
+          "Semaglutide 2.4 mg once weekly is a special-population obesity-treatment option for BMI/obesity-eligible knee OA patients after clinician/endocrine review; STEP 9 supports weight and WOMAC pain improvement, but it is not an autonomous OA analgesic.",
+          "Intra-articular triamcinolone acetonide 40 mg may be considered for the symptomatic knee when flare, effusion or pain blocks rehabilitation; avoid routine repeated injections and reassess response.",
+          "Sodium hyaluronate / hyaluronic acid injection is not a routine default: use only as a documented shared-decision option when standard treatments are unsuitable and uncertainty, cost and local product schedule are explained.",
+          "Platelet-rich plasma (PRP) is not a routine default: if offered locally, document preparation, injection number/interval, cost, uncertainty and consent; avoid structural-regeneration claims."
+        ],
+        "result_tiers": [
+          {
+            "tier": "Guideline core",
+            "message": "Topical NSAID is first-line for knee OA pain when skin is intact; oral NSAID requires renal, GI, anticoagulant/current-medication and CV review."
+          },
+          {
+            "tier": "Safety-gated option",
+            "message": "Celecoxib, naproxen or ibuprofen are named options only after the gate is complete and should use lowest effective dose for shortest duration."
+          },
+          {
+            "tier": "Injection result tier",
+            "message": "Corticosteroid injection is a short-term bridge when pain/effusion blocks rehabilitation; sodium hyaluronate and PRP are not routine defaults and require shared-decision documentation."
+          },
+          {
+            "tier": "Obesity pharmacotherapy RCT signal",
+            "message": "Semaglutide is surfaced only for obesity-indicated patients as a metabolic treatment option, using STEP 9 as RCT support and retaining label contraindication and prescribing review."
+          }
+        ]
+      }
+    },
+    {
+      "id": "psychology",
+      "name": "Psychology, behavior and adherence agent",
+      "specialty_rule": "Screen anxiety, depression, pain catastrophizing and sleep; if positive, provide guideline-consistent stepped psychological intervention with CBT, behavioral activation, pacing, relaxation and referral boundaries.",
+      "inputs": [
+        "Pain intensity",
+        "Anxiety/depression risk",
+        "Sleep",
+        "Adherence",
+        "Quality goal"
+      ],
+      "reasoning": [
+        "High pain and high demand require expectation management.",
+        "GAD-7, PHQ-9 and PCS results decide intensity of psychological support.",
+        "Behavior support improves adherence to rehabilitation and weight goals.",
+        "Self-harm, severe depression or uncontrolled anxiety requires urgent specialist pathway rather than routine OA coaching."
+      ],
+      "prescription": {
+        "screening": [
+          "GAD-7 for anxiety",
+          "PHQ-9 for depression",
+          "PCS for pain catastrophizing",
+          "PSQI or sleep screen",
+          "Self-harm question when PHQ-9 item 9 or clinical concern is positive"
+        ],
+        "intervention": [
+          "If GAD-7 or PHQ-9 is mild: guided self-help using CBT principles, activity scheduling, sleep routine and weekly symptom tracking for 4-6 weeks.",
+          "If anxiety/depression is moderate or persistent: refer for structured CBT, problem-solving therapy, behavioral activation or applied relaxation while continuing OA rehabilitation.",
+          "Use neutral pain neuroscience education: pain is influenced by joint structure, load, inflammation, sleep, stress and nervous-system sensitivity; it is not imagined pain.",
+          "Conversation cue: acknowledge pain, explain that joint structure, load, sleep, stress and nervous-system sensitivity interact, then agree on one two-week goal.",
+          "Use activity pacing: split the 3 km goal into tolerated walking intervals, alternate activity and rest before flare, and progress only after both knees remain stable.",
+          "Teach a flare script: diaphragmatic breathing 5 minutes, progressive muscle relaxation 10 minutes, reduce load for 24-48 hours, then resume graded movement.",
+          "Behavioral activation: schedule one meaningful low-load activity each day and track completion, mood, sleep and pain interference.",
+          "Escalate urgently to mental-health services if self-harm signal, severe depression, severe insomnia, panic preventing care, substance misuse or inability to adhere safely is present."
+        ],
+        "result_tiers": [
+          {
+            "tier": "Screen first",
+            "message": "GAD-7, PHQ-9, pain catastrophizing and sleep signals are read from KOM-Profile before advice is generated."
+          },
+          {
+            "tier": "Positive signal",
+            "message": "Mild/moderate anxiety, depression, insomnia or catastrophizing triggers CBT-informed explanation, behavioral activation, relaxation, pacing and referral boundaries."
+          },
+          {
+            "tier": "No data recorded",
+            "message": "If no screen is recorded, the output must state that the screen is missing and use only low-risk education until screening is completed."
+          }
+        ]
+      }
+    },
+    {
+      "id": "surgery",
+      "name": "Orthopedic surgery recommendation and preoperative warning agent",
+      "specialty_rule": "The system may recommend orthopedic specialist evaluation when side-specific KL3-4 disease, severe pain/function loss and insufficient conservative response are present; it records reasons and preoperative warnings but does not choose TKA, UKA or HTO.",
+      "inputs": [
+        "Left/right KL grade",
+        "Left/right pain",
+        "Function",
+        "Walking goal",
+        "Weight-bearing radiographs",
+        "Conservative-treatment history",
+        "Preoperative fitness"
+      ],
+      "reasoning": [
+        "Left KL4, NRS8 and WOMAC62 indicate high burden.",
+        "Right KL2 should not receive the same surgical recommendation as the left knee.",
+        "Persistent severe symptoms plus high walking goal justify specialist evaluation rather than indefinite conservative-only care.",
+        "Surgery type and timing require orthopedic specialist assessment."
+      ],
+      "prescription": {
+        "decision": "recommend orthopedic specialist evaluation for the left knee because KL4 structural OA, severe pain, major function limitation and high walking demand are present. Continue conservative monitoring for the right knee unless side-specific worsening occurs. The system does not decide TKA, UKA or HTO.",
+        "why_recommended": [
+          "Left knee KL4 with severe medial JSN, osteophytes and sclerosis",
+          "Pain NRS 8 and WOMAC function 62 indicate high symptomatic burden",
+          "Patient goal requires reliable walking capacity",
+          "Conservative-treatment history is incomplete and must be documented before surgical decision-making"
+        ],
+        "preoperative_warning": [
+          "Updated weight-bearing AP/lateral radiographs and long-leg alignment status are required for referral screening.",
+          "Record knee ROM, flexion contracture, effusion and gait-aid requirement.",
+          "Record conservative-treatment duration, adherence and response before referral is framed as appropriate.",
+          "Collect self-reported cardiovascular warning symptoms, respiratory risk, anticoagulant/antiplatelet use, diabetes control signal, skin wounds and dental/infection signal.",
+          "This is a pre-referral screen, not a final surgical admission workup or procedure selection."
+        ],
+        "collect_before_decision": [
+          "weight-bearing radiographs/alignment",
+          "knee ROM and contracture",
+          "conservative-treatment response",
+          "self-reported CV/respiratory screen",
+          "skin/dental infection screen",
+          "anticoagulant/diabetes flags"
+        ],
+        "prehab": [
+          "BMI and metabolic optimization",
+          "Cardiovascular risk review",
+          "Fall-risk reduction",
+          "Strength and gait preparation",
+          "Medication safety and renal/GI review",
+          "Psychological readiness and expectation alignment"
+        ],
+        "result_tiers": [
+          {
+            "tier": "Referral-screen logic",
+            "message": "Advanced side-specific KL3-4 disease plus severe pain/function loss supports orthopedic specialist evaluation, not automatic surgery selection."
+          },
+          {
+            "tier": "Mandatory pre-referral screen",
+            "message": "Weight-bearing radiographs/alignment status, ROM, conservative-treatment response, self-reported CV/respiratory risk, infection screen, anticoagulant/diabetes flags must be recorded or flagged missing."
+          },
+          {
+            "tier": "Boundary",
+            "message": "The AI can recommend referral and prehabilitation; it does not choose TKA, UKA or HTO."
+          }
+        ]
+      }
+    }
+  ],
+  "safety": [
+    {
+      "gate": "Bilateral knee identity gate",
+      "status": "PASS_WITH_RULES",
+      "finding": "Left and right knees have different KL grades, symptoms and treatment implications.",
+      "decision": "Every prediction, imaging interpretation and treatment recommendation must state the knee side."
+    },
+    {
+      "gate": "Oral NSAID safety gate",
+      "status": "ACTION_REQUIRED",
+      "finding": "Renal, GI, anticoagulant/current medication and cardiovascular review are incomplete.",
+      "decision": "Route back to medication agent; oral NSAID remains deferred or strictly conditional."
+    },
+    {
+      "gate": "Injection preference gate",
+      "status": "CONDITIONAL_PASS",
+      "finding": "Patient wants to avoid repeated injections.",
+      "decision": "Injection may only be discussed as short-term bridge therapy when flare, effusion or rehabilitation-blocking pain is present."
+    },
+    {
+      "gate": "Nutrition target gate",
+      "status": "PASS_WITH_RULES",
+      "finding": "BMI is elevated and strength must be preserved.",
+      "decision": "Use explicit 5% weight target over 3-6 months, paired with resistance training and renal review before fixed protein dosing."
+    },
+    {
+      "gate": "Psychology intervention gate",
+      "status": "PASS_WITH_RULES",
+      "finding": "High pain/high demand requires screening for anxiety, depression, catastrophizing and sleep disturbance.",
+      "decision": "Positive screens trigger CBT-informed self-help, behavioral activation, relaxation, pacing and referral boundaries."
+    },
+    {
+      "gate": "Orthopedic recommendation and preoperative warning gate",
+      "status": "PASS_WITH_RULES",
+      "finding": "Left KL4 and severe symptoms support orthopedic specialist evaluation.",
+      "decision": "Recommend specialist evaluation with reasons and preoperative warning checklist; the system does not choose TKA/UKA/HTO."
+    }
+  ],
+  "report": [
+    [
+      "Patient assessment report",
+      "Bilateral knee OA profile: left knee KL4 with severe pain/function burden; right knee KL2 with milder symptoms and active monitoring needs. Medication safety data remain incomplete and must be reviewed before routine oral NSAID escalation."
+    ],
+    [
+      "MDT treatment prescription",
+      "Use side-specific rehabilitation, explicit Nutrition target, concrete topical/oral medication options with dose/frequency gates, CBT-informed psychology intervention after screening, and recommend orthopedic specialist evaluation for the left knee with preoperative warning review."
+    ],
+    [
+      "Reasoning and process trail",
+      "Evidence selection prioritizes current guidelines, meta-analysis/systematic review evidence and RCT/clinical study detail. KOM-RAG patient-fit retrieval succeeds only after L1, L2 and L3 evidence are returned; KOM-Safe routes non-pass gates back to the responsible specialty agent."
+    ],
+    [
+      "Clinician review priorities",
+      "Bilateral knee identity, medication safety, injection indication, nutrition target, anxiety/depression intervention, referral readiness, preoperative warning status and missing information completion. This system supports clinical decision-making but does not replace clinician judgment."
+    ]
+  ],
+  "score": [
+    {
+      "domain": "Rule and model validation",
+      "metrics": [
+        "Bilateral side-identity preservation",
+        "Endpoint-specific discrimination",
+        "Side-specific calibration",
+        "Decision-curve analysis",
+        "Ablation across left/right KL and symptom anchors"
+      ]
+    },
+    {
+      "domain": "Expert prescription quality review",
+      "metrics": [
+        "Completeness",
+        "Concrete medication dose/frequency",
+        "Nutrition target clarity",
+        "Psychology intervention detail",
+        "Preoperative warning completeness",
+        "Patient fit"
+      ]
+    },
+    {
+      "domain": "Safety-event and gate audit",
+      "metrics": [
+        "NSAID gate pass",
+        "Surgery boundary pass",
+        "Fall-prevention pass",
+        "Weight plus muscle preservation pass",
+        "Missing information handling"
+      ]
+    }
+  ],
+  "trace": [
+    {
+      "stage": "Profile",
+      "artifact": "Editable patient profile and selected case assessment."
+    },
+    {
+      "stage": "Radiology",
+      "artifact": "Original image, annotation and structured radiographic findings."
+    },
+    {
+      "stage": "Risk",
+      "artifact": "Three endpoint risk estimates and sensitivity analysis."
+    },
+    {
+      "stage": "Evidence",
+      "artifact": "Guideline, meta-analysis, RCT and context evidence chain."
+    },
+    {
+      "stage": "MDT",
+      "artifact": "Specialty prescriptions and reasoning notes."
+    },
+    {
+      "stage": "Safety",
+      "artifact": "Gate audit, specialty revision and re-audit."
+    },
+    {
+      "stage": "Report",
+      "artifact": "Assessment report, treatment prescription and reasoning trail."
+    }
+  ],
+  "institutional_context": "West China Hospital Sports Medicine clinical research platform",
+  "clinical_score_set": [
+    {
+      "name": "WOMAC",
+      "use": "Pain, stiffness and physical function in knee or hip osteoarthritis."
+    },
+    {
+      "name": "KOOS",
+      "use": "Symptoms, pain, activities of daily living, sport/recreation and knee-related quality of life."
+    },
+    {
+      "name": "Oxford Knee Score",
+      "use": "Twelve-item knee pain and function measure, commonly used around surgical evaluation."
+    },
+    {
+      "name": "NRS pain",
+      "use": "0-10 pain intensity anchor."
+    },
+    {
+      "name": "MRC strength",
+      "use": "Manual muscle testing from 0 to 5, paired with dynamometer strength when available."
+    },
+    {
+      "name": "TUG / chair stand / 6-minute walk",
+      "use": "Performance measures for mobility, lower-limb function and fall-risk context."
+    }
+  ]
+}

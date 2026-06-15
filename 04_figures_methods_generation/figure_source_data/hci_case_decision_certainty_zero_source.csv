@@ -1,0 +1,4 @@
+﻿metric_code,metric_label,condition,value,sem,count
+decision_certainty,Certainty,+AI plan,7.384615384615385,0.10814322840013611,260
+decision_certainty,Certainty,+AI+evidence,7.530769230769231,0.12018905549505607,260
+decision_certainty,Certainty,Patient only,7.288461538461538,0.09969997944645913,260

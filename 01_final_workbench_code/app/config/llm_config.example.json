@@ -1,0 +1,12 @@
+{
+  "provider": "OpenAI-compatible",
+  "base_url": "https://xiaoai.plus/v1",
+  "text_model": "gpt-4o",
+  "vision_model": "gpt-4o",
+  "temperature": 0.2,
+  "timeout_seconds": 60,
+  "use_for_agent_board": true,
+  "use_for_image_qa": true,
+  "use_for_report_drafting": true,
+  "note": "Do not store plaintext API keys in this file."
+}

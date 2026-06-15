@@ -1,0 +1,5 @@
+﻿Outcome,Mode,N features,AUROC,95% CI,AUPRC,Brier,Use case
+KL Progression,Full,74,0.8688,"[0.8603, 0.8770]",0.3675,0.0653,Research / publication baseline
+KL Progression,Standard,23,0.848,—,,0.0689,Tertiary specialist clinic
+KL Progression,Lite,12,0.7652,—,,0.0722,General practice / secondary
+KL Progression,Minimal,6,0.736,—,,0.0732,ER triage / telehealth

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: kom-clinical-workbench
+    env: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v9/validate
+    envVars:
+      - key: KOM_PUBLIC_DEMO
+        value: "1"

@@ -1,0 +1,4 @@
+﻿metric_code,metric_label,stage_label,value,sem,count
+mental_demand,Mental load,Stage 1,7.115384615384615,0.3775504982094778,26
+mental_demand,Mental load,Stage 2,5.346153846153846,0.5021256590882336,26
+mental_demand,Mental load,Stage 3,4.884615384615385,0.5093794809582555,26

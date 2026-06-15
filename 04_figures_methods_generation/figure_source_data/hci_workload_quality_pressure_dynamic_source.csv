@@ -1,0 +1,4 @@
+﻿metric_code,metric_label,stage_label,value,sem,count
+quality_pressure,Quality pressure,Stage 1,5.769230769230769,0.5242069242277176,26
+quality_pressure,Quality pressure,Stage 2,4.615384615384615,0.4576761470967236,26
+quality_pressure,Quality pressure,Stage 3,3.8076923076923075,0.44727974646481944,26

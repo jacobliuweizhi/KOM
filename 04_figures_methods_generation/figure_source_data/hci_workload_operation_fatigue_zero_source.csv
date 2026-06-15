@@ -1,0 +1,4 @@
+﻿metric_code,metric_label,stage_label,value,sem,count
+operation_fatigue,Fatigue,Stage 1,7.384615384615385,0.5437106783714551,26
+operation_fatigue,Fatigue,Stage 2,5.653846153846154,0.5573075595901525,26
+operation_fatigue,Fatigue,Stage 3,5.038461538461538,0.6063275815058016,26

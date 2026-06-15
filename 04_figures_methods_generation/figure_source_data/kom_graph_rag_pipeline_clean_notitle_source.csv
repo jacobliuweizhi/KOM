@@ -1,0 +1,20 @@
+﻿node,x,y,color,kind,source,target
+Standard cases,0.08,0.62,#D9E8F5,node,,
+KOM-Profile,0.26,0.62,#E2F0E8,node,,
+OAK-Net,0.26,0.38,#F3E6DD,node,,
+KOM-Risk,0.44,0.62,#F0E7F4,node,,
+KOM-RAG,0.44,0.38,#E8EEF6,node,,
+Graph evidence,0.62,0.38,#F5EBD8,node,,
+MDT/Rx,0.62,0.62,#E3EFE6,node,,
+Safety audit,0.8,0.62,#F4E1E0,node,,
+Doctor UI,0.8,0.38,#E9EDF1,node,,
+,,,,edge,Standard cases,KOM-Profile
+,,,,edge,Standard cases,OAK-Net
+,,,,edge,KOM-Profile,KOM-Risk
+,,,,edge,OAK-Net,KOM-Risk
+,,,,edge,KOM-RAG,Graph evidence
+,,,,edge,Graph evidence,MDT/Rx
+,,,,edge,KOM-Risk,MDT/Rx
+,,,,edge,MDT/Rx,Safety audit
+,,,,edge,Safety audit,Doctor UI
+,,,,edge,Graph evidence,Doctor UI

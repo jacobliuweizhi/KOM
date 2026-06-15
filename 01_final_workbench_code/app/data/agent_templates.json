@@ -1,0 +1,267 @@
+[
+  {
+    "agent_id": "AG01",
+    "name": "Patient profile consensus",
+    "input_signals": [
+      "age 63",
+      "BMI 24.7",
+      "current pain field low",
+      "fall-history field positive"
+    ],
+    "case_interpretation": "The case is structurally severe but not currently high-symptom in the packaged visit fields.",
+    "evidence_used": [
+      "OAI-allclinical06"
+    ],
+    "draft_recommendation": "Use a prevention-oriented conservative plan.",
+    "concerns": [
+      "avoid overtreatment from imaging alone"
+    ],
+    "open_questions": [
+      "sex is not included in the local extract",
+      "current examination is not packaged"
+    ],
+    "challenge_received": "Cross-domain challenge requests clearer safety boundaries and evidence mapping.",
+    "revision": "Added clinician confirmation before escalation.",
+    "final_contribution": "Keeps the plan proportional to symptoms and function.",
+    "source_status": "V5 agent board reused and extended",
+    "trace_id": "trace-agent-01",
+    "created_at": "2026-06-11T09:16:16+00:00",
+    "updated_at": "2026-06-11T09:16:16+00:00"
+  },
+  {
+    "agent_id": "AG02",
+    "name": "Exercise rehabilitation",
+    "input_signals": [
+      "right KL4",
+      "fall-history field",
+      "400 m walk completed"
+    ],
+    "case_interpretation": "Low-impact exercise, strengthening, balance, and stop rules are appropriate.",
+    "evidence_used": [
+      "KOA-EU-02401",
+      "KOA-EU-02311",
+      "KOA-EU-02212"
+    ],
+    "draft_recommendation": "Start FITT-guided rehabilitation.",
+    "concerns": [
+      "avoid overload",
+      "monitor falls"
+    ],
+    "open_questions": [
+      "current quadriceps strength is not packaged"
+    ],
+    "challenge_received": "Cross-domain challenge requests clearer safety boundaries and evidence mapping.",
+    "revision": "Added fall-prevention gate and pain >2 stop rule.",
+    "final_contribution": "Delivers a safe activity plan.",
+    "source_status": "V5 agent board reused and extended",
+    "trace_id": "trace-agent-02",
+    "created_at": "2026-06-11T09:16:16+00:00",
+    "updated_at": "2026-06-11T09:16:16+00:00"
+  },
+  {
+    "agent_id": "AG03",
+    "name": "Weight and nutrition",
+    "input_signals": [
+      "BMI 24.7",
+      "function preserved",
+      "muscle preservation priority"
+    ],
+    "case_interpretation": "Aggressive weight loss is not indicated; nutrition should preserve muscle.",
+    "evidence_used": [
+      "KOA-EU-02421",
+      "KOA-EU-02222",
+      "KOA-EU-02123"
+    ],
+    "draft_recommendation": "Maintain healthy weight and support activity.",
+    "concerns": [
+      "avoid unnecessary caloric restriction"
+    ],
+    "open_questions": [
+      "dietary pattern not packaged"
+    ],
+    "challenge_received": "Cross-domain challenge requests clearer safety boundaries and evidence mapping.",
+    "revision": "Changed from weight-loss language to weight-stability and muscle preservation.",
+    "final_contribution": "Prevents inappropriate obesity-oriented advice.",
+    "source_status": "V5 agent board reused and extended",
+    "trace_id": "trace-agent-03",
+    "created_at": "2026-06-11T09:16:16+00:00",
+    "updated_at": "2026-06-11T09:16:16+00:00"
+  },
+  {
+    "agent_id": "AG04",
+    "name": "Medication and injection",
+    "input_signals": [
+      "no current knee pain medication",
+      "low current pain field",
+      "GI/CV/renal review gate"
+    ],
+    "case_interpretation": "Medication is symptom-triggered; oral NSAID is not routine.",
+    "evidence_used": [
+      "KOA-EU-02231",
+      "KOA-EU-02132",
+      "KOA-EU-01933",
+      "KOA-EU-02234"
+    ],
+    "draft_recommendation": "Topical option only during flare; no routine oral NSAID.",
+    "concerns": [
+      "renal/GI/CV/current-medication status must be reviewed"
+    ],
+    "open_questions": [
+      "complete medication list is not packaged"
+    ],
+    "challenge_received": "Cross-domain challenge requests clearer safety boundaries and evidence mapping.",
+    "revision": "Made oral NSAID gate explicit.",
+    "final_contribution": "Keeps analgesia supportive rather than dominant.",
+    "source_status": "V5 agent board reused and extended",
+    "trace_id": "trace-agent-04",
+    "created_at": "2026-06-11T09:16:16+00:00",
+    "updated_at": "2026-06-11T09:16:16+00:00"
+  },
+  {
+    "agent_id": "AG05",
+    "name": "Self-management and behavior",
+    "input_signals": [
+      "preserve walking goal",
+      "avoid overtreatment",
+      "need follow-up adherence"
+    ],
+    "case_interpretation": "Education and pacing support monitoring and adherence.",
+    "evidence_used": [
+      "KOA-EU-02461",
+      "KOA-EU-02362",
+      "KOA-EU-02263"
+    ],
+    "draft_recommendation": "Use education, pacing, and goal tracking.",
+    "concerns": [
+      "do not over-psychologize structural OA"
+    ],
+    "open_questions": [
+      "mood and sleep scores are not packaged"
+    ],
+    "challenge_received": "Cross-domain challenge requests clearer safety boundaries and evidence mapping.",
+    "revision": "Added neutral screening language if symptoms or adherence worsen.",
+    "final_contribution": "Improves implementation without stigma.",
+    "source_status": "V5 agent board reused and extended",
+    "trace_id": "trace-agent-05",
+    "created_at": "2026-06-11T09:16:16+00:00",
+    "updated_at": "2026-06-11T09:16:16+00:00"
+  },
+  {
+    "agent_id": "AG06",
+    "name": "Orthopaedic boundary",
+    "input_signals": [
+      "right KL4",
+      "low current symptom burden",
+      "function preserved"
+    ],
+    "case_interpretation": "Specialist discussion is a boundary, not an automatic output.",
+    "evidence_used": [
+      "KOA-EU-02141",
+      "KOA-EU-02242",
+      "KOA-EU-02043"
+    ],
+    "draft_recommendation": "No image-only surgical decision.",
+    "concerns": [
+      "radiographic severity can be over-interpreted"
+    ],
+    "open_questions": [
+      "physical examination and patient preference need clinician confirmation"
+    ],
+    "challenge_received": "Cross-domain challenge requests clearer safety boundaries and evidence mapping.",
+    "revision": "Explicitly reserved referral for persistent clinically important burden.",
+    "final_contribution": "Protects against premature escalation.",
+    "source_status": "V5 agent board reused and extended",
+    "trace_id": "trace-agent-06",
+    "created_at": "2026-06-11T09:16:16+00:00",
+    "updated_at": "2026-06-11T09:16:16+00:00"
+  },
+  {
+    "agent_id": "AG07",
+    "name": "Safety auditor",
+    "input_signals": [
+      "fall history",
+      "medication gates",
+      "red flags"
+    ],
+    "case_interpretation": "Safety gates must remain visible across the plan.",
+    "evidence_used": [
+      "KOA-EU-02251",
+      "KOA-EU-02152",
+      "KOA-EU-02053",
+      "KOA-EU-02154"
+    ],
+    "draft_recommendation": "Add 12 safety gates.",
+    "concerns": [
+      "uncertain comorbidity details",
+      "no live clinician exam"
+    ],
+    "open_questions": [
+      "renal/GI/CV medication details if analgesics are started"
+    ],
+    "challenge_received": "Cross-domain challenge requests clearer safety boundaries and evidence mapping.",
+    "revision": "Added clinician confirmation and urgent review triggers.",
+    "final_contribution": "Prevents unsafe medication, overload, and image-only escalation.",
+    "source_status": "V5 agent board reused and extended",
+    "trace_id": "trace-agent-07",
+    "created_at": "2026-06-11T09:16:16+00:00",
+    "updated_at": "2026-06-11T09:16:16+00:00"
+  },
+  {
+    "agent_id": "AG08",
+    "name": "Evidence arbiter",
+    "input_signals": [
+      "case-specific RAG",
+      "guideline anchors",
+      "domain separation"
+    ],
+    "case_interpretation": "Evidence paths should connect patient features to recommendations.",
+    "evidence_used": [
+      "KOA-EU-02022",
+      "KOA-EU-02401",
+      "KOA-EU-02251"
+    ],
+    "draft_recommendation": "Show evidence-to-recommendation graph paths.",
+    "concerns": [
+      "avoid repeated generic evidence across domains"
+    ],
+    "open_questions": [
+      "live retrieval can be configured later"
+    ],
+    "challenge_received": "Cross-domain challenge requests clearer safety boundaries and evidence mapping.",
+    "revision": "Added domain-specific graph filters and card explanations.",
+    "final_contribution": "Makes evidence use inspectable.",
+    "source_status": "V5 agent board reused and extended",
+    "trace_id": "trace-agent-08",
+    "created_at": "2026-06-11T09:16:16+00:00",
+    "updated_at": "2026-06-11T09:16:16+00:00"
+  },
+  {
+    "agent_id": "AG09",
+    "name": "Final synthesis",
+    "input_signals": [
+      "all agent revisions",
+      "safety gates",
+      "patient timeline"
+    ],
+    "case_interpretation": "The final plan resolves structural severity against low current symptom burden.",
+    "evidence_used": [
+      "OAI-kxr_sq_bu06",
+      "KOA-EU-02022",
+      "KOA-EU-02141"
+    ],
+    "draft_recommendation": "Structured conservative plan with monitoring and boundaries.",
+    "concerns": [
+      "clinician confirmation remains required"
+    ],
+    "open_questions": [
+      "future live API/VLM configuration"
+    ],
+    "challenge_received": "Cross-domain challenge requests clearer safety boundaries and evidence mapping.",
+    "revision": "Locked final sections, safety review, and trace summary.",
+    "final_contribution": "Produces the clinical report.",
+    "source_status": "V5 agent board reused and extended",
+    "trace_id": "trace-agent-09",
+    "created_at": "2026-06-11T09:16:16+00:00",
+    "updated_at": "2026-06-11T09:16:16+00:00"
+  }
+]
