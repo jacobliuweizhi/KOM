@@ -1,127 +1,162 @@
-[README.md](https://github.com/user-attachments/files/28964414/README.md)
-# KOM: Knee Osteoarthritis Manager
+[README.md](https://github.com/user-attachments/files/28965372/README.md)
+# KOM - Knee Osteoarthritis Manager
 
-[Public demo](https://kom-workbench-public-demo.onrender.com/dashboard)
+[Open the public demo](https://kom-workbench-public-demo.onrender.com/dashboard)
 
-KOM is a research-oriented clinical decision-support workbench for knee osteoarthritis management. It brings together structured patient assessment, bilateral knee imaging context, longitudinal risk estimation, evidence retrieval, multidisciplinary treatment planning, safety review, and clinician-selectable reporting in one inspectable workflow.
+KOM is a clinician-facing research workbench for knee osteoarthritis management. It was built to show, in one place, how a patient with knee osteoarthritis can move from structured assessment to imaging context, longitudinal risk estimation, evidence retrieval, multidisciplinary treatment planning, safety review, and a final clinician-controlled prescription report.
 
-The project is designed for sports medicine, orthopaedics, rehabilitation, chronic disease management, and clinical AI research. It is not a patient self-diagnosis tool, not an autonomous prescribing system, and not a replacement for licensed clinician judgment.
+This project is meant for people who want to inspect the workflow, reuse the code, study the skill system, test the public web version, or understand how a knee osteoarthritis decision-support pipeline can be made traceable from input to output. It is not a patient self-diagnosis tool, not an autonomous prescribing system, and not a replacement for licensed clinical judgment.
 
-## Why KOM Exists
+## Quick Orientation
 
-Knee osteoarthritis care is not a single model prediction or a one-line recommendation. A useful management plan must consider pain, function, imaging findings, body weight, metabolic risk, prior treatment, medication safety, exercise tolerance, patient goals, surgical boundaries, and the quality of supporting evidence.
+KOM has three practical surfaces:
 
-KOM turns this complex decision process into a transparent clinical workflow:
+| Surface | Who it is for | What it contains |
+|---|---|---|
+| Public web demo | Reviewers, collaborators, clinicians, and readers who want to see the workflow without installing anything | A hosted browser version of the KOM workbench with de-identified showcase cases and interactive modules. |
+| Code package | Developers and research collaborators who want to inspect, run, adapt, or audit the system | Python backend, browser frontend, Evidence Unit data, graph files, validation scripts, deployment files, and reproducibility scripts. |
+| KOM Skills | Users who want the reusable reasoning layer behind the workflow | Skill modules for patient intake, imaging-risk reasoning, treatment-agent routing, Evidence Unit GraphRAG, literature learning, case demonstration, and controlled updates. |
 
-- profile the patient and both knees separately;
-- keep imaging, symptoms, risk, evidence, and treatment reasoning connected;
-- retrieve traceable guideline, review, trial, and contextual evidence;
-- let specialty agents draft domain-specific treatment options;
-- run safety and compatibility checks before a plan is accepted;
-- keep the clinician in control of the final prescription;
-- export a report and validation trace that reviewers can inspect.
+The web page is only the visible entry point. The project also includes a backend API, structured evidence data, a graph-based retrieval layer, treatment-agent logic, safety negotiation, validation checks, and a reusable skill pack.
 
-In short, KOM is built to make knee osteoarthritis decision-support more structured, more auditable, and easier to explain.
+## Current Demo
 
-## What You Can See in the Demo
+The public demo is available here:
 
-The public demo opens a complete KOM clinical workbench. A reviewer can move through the whole pathway without needing access to private clinical data.
+```text
+https://kom-workbench-public-demo.onrender.com/dashboard
+```
 
-| Area | What it shows |
+The hosted workbench serves the dashboard page and exposes a validation endpoint at:
+
+```text
+https://kom-workbench-public-demo.onrender.com/api/v9/validate
+```
+
+For this release, the validation endpoint reports `KOM_ENGLISH_READY` with `40/40 checks passed`. If the Render service has been idle, the first visit may take a short moment while the service wakes.
+
+## What KOM Is Trying To Solve
+
+Knee osteoarthritis care is rarely decided by one number. A clinician usually has to connect symptoms, functional limitation, imaging findings, body weight, metabolic burden, previous treatment, medication risks, injection boundaries, exercise tolerance, surgical referral thresholds, patient goals, and the strength of supporting evidence.
+
+KOM turns that scattered decision process into a reproducible pathway:
+
+- build a structured profile for the patient and both knees;
+- keep left and right knee information separate where it matters;
+- attach imaging context without letting imaging alone make the decision;
+- estimate longitudinal risk in a way that remains visible to the user;
+- retrieve evidence as traceable Evidence Units rather than loose text;
+- route the case to specialty treatment agents;
+- check safety gates before a draft plan becomes a final plan;
+- let the clinician choose the final treatment modules;
+- export a report and validation trace that another reader can inspect.
+
+The goal is not to make the system sound mysterious. The goal is the opposite: each step should be visible enough that a clinician, reviewer, collaborator, or developer can see what the system used, what it did, and where human review remains necessary.
+
+## What You Can Do In The Workbench
+
+| Module | What it does |
 |---|---|
-| Dashboard | A visual overview of the KOM-Assess and KOM-Treat workflow. |
-| KOM-Profile | Four selectable patient examples, bilateral KL grades, pain NRS, WOMAC function, BMI, safety gates, outcome calculators, and profile persistence. |
-| KOM-Rad | Structured knee imaging interpretation with side-specific radiographic context. |
-| KOM-Risk | Backend endpoint-backed bilateral risk prediction for structural progression, surgery-event risk, and symptom/function worsening. |
-| KOM-RAG | Patient-fit evidence retrieval, Evidence Unit details, evidence graph, catalog search, pagination, and export. |
-| KOM-MDT | Specialty treatment agents for rehabilitation, weight/nutrition, medication/injection, psychology/self-management, and orthopaedic referral boundaries. |
-| KOM-Safe | Safety-gate auditing and Safe-MDT negotiation with event-level revision traces. |
-| KOM-Rx | Clinician-selectable prescription builder, evidence-supported final plan, Markdown/HTML report export, and final prescription persistence. |
-| KOM-Score | Validation center for route availability, wording, controls, evidence display, safety negotiation, and report export. |
-| Settings | Optional OpenAI-compatible model configuration. The deterministic local pathway remains available without a model API key. |
+| Dashboard | Shows the full KOM-Assess and KOM-Treat pathway and links directly to the major layers. |
+| KOM-Profile | Loads compact patient examples, edits bilateral KL grade, pain NRS, WOMAC function, BMI and safety fields, and saves the profile state for downstream modules. |
+| KOM-Rad | Displays structured imaging context for the knees and keeps imaging interpretation separate from treatment selection. |
+| KOM-Risk | Sends the current case state to the backend risk endpoint and returns side-specific risk estimates for structural progression, surgery events, and symptom/function worsening. |
+| KOM-RAG | Searches the local Evidence Unit catalog, retrieves patient-fit evidence, displays an interactive evidence network, and opens detailed evidence cards. |
+| KOM-MDT | Runs a specialty treatment board for rehabilitation, nutrition/weight, medication and injection, psychology/self-management, and orthopaedic referral boundaries. |
+| KOM-Safe | Audits medication, injection, exercise, surgery, nutrition, psychology, missing-data, and compatibility gates before a plan is accepted. |
+| KOM-Rx | Lets the clinician select final prescription modules and exports a structured clinical report with evidence support and safety notes. |
+| KOM-Score | Runs validation checks and displays the process trace for review. |
+| Settings | Allows optional OpenAI-compatible model configuration. The local deterministic pathway remains available without a private model key. |
 
-## System Architecture
+## How The Workflow Fits Together
 
 ```mermaid
 flowchart LR
-  A["KOM-Profile<br/>structured bilateral patient state"] --> B["KOM-Rad<br/>imaging context"]
-  A --> C["KOM-Risk<br/>side-specific longitudinal risk"]
+  A["KOM-Profile<br/>patient and bilateral knee state"] --> B["KOM-Rad<br/>imaging context"]
+  A --> C["KOM-Risk<br/>side-specific risk endpoint"]
   A --> D["KOM-RAG<br/>patient-fit Evidence Units"]
   B --> C
   C --> D
   D --> E["KOM-MDT<br/>specialty treatment agents"]
   E --> F["KOM-Safe<br/>safety and compatibility audit"]
-  F --> G["KOM-Rx<br/>clinician-selected final report"]
+  F --> G["KOM-Rx<br/>clinician-selected final plan"]
   G --> H["KOM-Score<br/>validation and trace"]
 ```
 
-KOM is intentionally modular. Each layer has a clear responsibility, so evidence retrieval does not silently become a prescription, imaging severity does not automatically become surgery, and a treatment draft does not become final until safety gates and clinician review boundaries are recorded.
+The design keeps module boundaries explicit. Patient intake does not write the final prescription. Imaging findings do not automatically trigger surgery. Evidence retrieval does not become a treatment order. Treatment agents produce drafts, and KOM-Safe plus clinician review decide what can move forward.
 
-## Core Modules
+## Core Components
 
 ### KOM-Profile
 
-KOM-Profile converts a case into a structured clinical state. It separates the left and right knees, records KL grade, pain NRS, WOMAC function, BMI, progression status, treatment history, comorbidity and medication safety information, and missing data. Downstream modules read this state instead of inventing new case facts.
+KOM-Profile is the entry point for the clinical case. It stores demographics, BMI, pain, WOMAC function, KL grade, symptom burden, treatment history, safety fields, and missing information. The current workbench keeps left and right knees explicit across the workflow, because the two knees may have different KL grades, pain levels, functional burden, and treatment priorities.
 
 ### KOM-Rad
 
-KOM-Rad displays imaging-aware information for each knee. It anchors the workflow in radiographic severity and structural findings while keeping imaging interpretation as supporting context rather than an automatic treatment decision.
+KOM-Rad provides imaging context. It records side-specific structural information and connects radiographic severity to the rest of the case without treating the image as a stand-alone decision-maker. KL grade is changed in KOM-Profile and then read by downstream modules.
 
 ### KOM-Risk
 
-KOM-Risk estimates three major longitudinal outcome domains:
+KOM-Risk estimates risk across three outcome domains:
 
 - structural progression;
-- fixed-window knee surgery event risk;
+- fixed-window knee surgery events;
 - symptom and function worsening.
 
-The current workbench includes side-specific and bilateral-coupled risk logic. KL grade is locked from KOM-Profile, while scenario variables such as BMI, pain, and WOMAC function can be explored through the risk endpoint.
+The current workbench uses an endpoint-backed bilateral risk pathway. Modifiable scenario variables such as BMI, pain NRS, and WOMAC function can be adjusted, while observed KL grade remains locked from the profile. The risk output is meant to support follow-up intensity, patient communication, and evidence retrieval. It is not a final treatment decision by itself.
 
 ### KOM-KB and KOM-RAG
 
-KOM-KB organizes literature and guideline content as structured Evidence Units. Each unit records source identity, evidence level, treatment domain, population, intervention, comparator/context, outcomes, safety notes, prescription use, and traceability fields.
+KOM-KB stores literature and guideline information as structured Evidence Units. An Evidence Unit can include the source, evidence level, treatment domain, population, intervention, comparator or context, outcomes, safety notes, prescription relevance, and traceability fields.
 
-KOM-RAG retrieves evidence by combining patient context, treatment domain, guideline anchors, evidence level, safety tags, and graph relations. The current local catalog contains thousands of Evidence Units and supports interactive search, graph display, patient-fit retrieval, and JSON export.
+KOM-RAG retrieves evidence by using patient context, treatment domain, guideline anchors, evidence tiers, safety tags, and graph relationships. The current local catalog contains thousands of Evidence Units and supports patient-fit retrieval, catalog search, graph display, detailed evidence cards, pagination, and JSON export.
 
 ### KOM-MDT
 
-KOM-MDT routes the patient profile and evidence pack to specialty agents. The current treatment board covers rehabilitation, nutrition/weight, pharmacologic and injection options, psychology/self-management, orthopaedic boundaries, and final synthesis.
+KOM-MDT is the multidisciplinary treatment board. It routes the case to specialty agents for:
 
-Each agent is expected to state the patient fit, evidence basis, prescription content, non-selection reasoning, safety limits, and clinician-review boundary.
+- exercise and rehabilitation;
+- weight, nutrition, and metabolic risk;
+- medication and injection options;
+- psychology, behavior, and self-management;
+- orthopaedic referral boundaries;
+- final treatment synthesis.
+
+Each agent should explain patient fit, evidence basis, prescription content, non-selection reasoning, safety limits, and review boundaries.
 
 ### KOM-Safe
 
-KOM-Safe reviews a draft plan before it can be accepted. It checks medication risk, injection appropriateness, exercise overload, fall risk, red flags, missing safety data, surgery referral boundaries, and cross-specialty conflicts.
+KOM-Safe is the safety and compatibility layer. It checks whether a proposed plan has unresolved medication risks, injection conflicts, exercise overload, fall-risk concerns, missing safety fields, surgical boundary issues, or cross-specialty contradictions.
 
-When a gate is not passed, the Safe-MDT negotiation loop sends the finding back to the responsible specialty agent, records the revision, re-audits the result, and preserves the trace.
+When a gate is not passed, KOM-Safe can send the issue back to the responsible specialty agent, record the revision, re-audit the output, and preserve an event-level trace.
 
 ### KOM-Rx
 
-KOM-Rx turns the accepted MDT outputs into a structured clinician-facing report. The clinician selects the final treatment modules; the system records selected options, evidence support, safety gates, and report exports. This keeps the final plan reviewable and editable.
+KOM-Rx is the final clinician-facing output layer. The clinician selects the modules that should appear in the final plan. The saved report carries treatment content, evidence support, safety gates, and clinician-review boundaries. This keeps the final prescription visible and editable rather than hidden inside a model response.
 
 ### KOM-Score and KOM-Sim
 
-KOM-Score supports validation of outputs, route availability, wording, controls, evidence panels, safety negotiation, and report export. KOM-Sim is used for clinician-in-the-loop simulation and human-AI interaction evaluation.
+KOM-Score supports validation of the workbench, route availability, English public wording, interface controls, RAG views, MDT prescriptions, Safe-MDT negotiation, and report export. KOM-Sim supports clinician-in-the-loop simulation and human-computer interaction evaluation.
 
-## Skills Layer
+## KOM Skills
 
-The KOM Skills package is the reusable reasoning and workflow layer behind the workbench. It is not a generic prompt collection; it is a domain-specific skill system for knee osteoarthritis assessment, evidence routing, treatment-agent reasoning, reviewer demonstration, literature learning, and controlled update governance.
+The KOM Skills package is the reusable workflow layer that sits behind the workbench. It is written for knee osteoarthritis work rather than for generic conversation. The skills define how patient information is captured, how imaging and risk are interpreted, how treatment agents are routed, how evidence is handled, how reviewer demonstrations are built, and how future changes should be governed.
 
 | Skill | Role |
 |---|---|
-| `koa-integrated-care-orchestrator` | Coordinates the full workflow from patient intake to final treatment-plan assembly. |
-| `koa-patient-intake-assessment` | Extracts patient information, detects missingness and red flags, and normalizes the clinical profile. |
-| `koa-imaging-risk-progression` | Handles imaging appropriateness, structural severity, symptom-imaging mismatch, progression risk, and escalation signals. |
-| `koa-treatment-agent-system` | Routes patient context into treatment-domain agents and the local evidence database. |
-| `koa-case-demonstration-showcase` | Builds audit-ready reviewer-facing case demonstrations with intake, imaging, Evidence Unit GraphRAG, MDT output, and HCI evaluation. |
-| `koa-literature-learning-research-suite` | Supports literature learning, evidence matrices, systematic review planning, citation audit, manuscript strategy, and reviewer simulation. |
-| `koa-self-evolution-governance` | Controls how new guidelines, databases, reviewer comments, and user feedback are accepted, rejected, or logged. |
+| `koa-integrated-care-orchestrator` | Coordinates the complete case flow from patient intake to treatment-plan assembly. |
+| `koa-patient-intake-assessment` | Extracts patient information, identifies missingness and red flags, and normalizes the clinical profile. |
+| `koa-imaging-risk-progression` | Handles imaging appropriateness, structural severity, symptom-imaging mismatch, risk stratification, and progression forecasting. |
+| `koa-treatment-agent-system` | Routes the patient profile into treatment-domain agents and the evidence database. |
+| `koa-case-demonstration-showcase` | Builds reviewer-facing case demonstrations with intake, imaging, Evidence Unit GraphRAG, MDT output, safety audit, final plan, and HCI evaluation. |
+| `koa-literature-learning-research-suite` | Supports KOA literature learning, evidence matrices, systematic-review planning, citation audit, manuscript planning, and reviewer simulation. |
+| `koa-self-evolution-governance` | Controls how new databases, guidelines, reviewer comments, user feedback, and code changes are accepted, rejected, or logged. |
 
-Together, these skills make the project richer than a web page. The workbench is the interactive front end; the skills define how clinical information is collected, how evidence is interpreted, how treatment options are routed, and how updates remain auditable.
+For a reader using the skills directly, the main idea is simple: each skill has a narrow responsibility, and the system should not skip evidence, safety, or review steps just because a later module wants an answer quickly.
 
-## Code Organization
+## Code Package
 
-This code package is organized so that reviewers can distinguish the running application, reusable scripts, figure generation, and skill logic.
+The code package is arranged so that readers can separate the live application from review code, reproducibility scripts, figures, and model-pipeline materials.
 
 ```text
 KOM_Project_Code_Package_20260616_001908/
@@ -163,37 +198,45 @@ KOM_Project_Code_Package_20260616_001908/
   06_review_ready_runtime_notes/
 ```
 
-Key application files:
+Important files:
 
-- `app/backend/server.py` provides the local HTTP server, API routes, risk endpoint, evidence retrieval endpoint, Safe-MDT negotiation, profile persistence, final Rx persistence, validation, and report export.
-- `app/static/kom_v9.js` implements the interactive workbench pages and client-side workflow.
-- `app/static/kom_v9.css` defines the clinician-facing interface styling.
-- `app/data/evidence_units.jsonl` stores the local Evidence Unit catalog.
-- `app/data/graph_nodes.json` and `app/data/graph_edges.json` support graph-based evidence display.
-- `app/data/v9_workbench_content.json` stores the core workbench content and module definitions.
-- `tools/` contains evidence enrichment utilities.
-- `validation/` contains validation reports and package integrity outputs.
-- `Dockerfile` and `render.yaml` support public web deployment.
+| File or folder | Why it matters |
+|---|---|
+| `01_final_workbench_code/app/backend/server.py` | Main backend server, API routes, risk endpoint, evidence retrieval, agent chat, Safe-MDT negotiation, profile persistence, final Rx persistence, validation, and report export. |
+| `01_final_workbench_code/app/static/kom_v9.js` | Main browser application and page logic for the workbench. |
+| `01_final_workbench_code/app/static/kom_v9.css` | Clinician-facing interface styling. |
+| `01_final_workbench_code/app/data/evidence_units.jsonl` | Local Evidence Unit catalog. |
+| `01_final_workbench_code/app/data/graph_nodes.json` and `graph_edges.json` | Evidence graph data used by the RAG network display. |
+| `01_final_workbench_code/app/data/v9_workbench_content.json` | Core module content, case content, and workbench definitions. |
+| `01_final_workbench_code/tools/` | Evidence enrichment and supporting data utilities. |
+| `01_final_workbench_code/validation/` | Validation reports and package integrity outputs. |
+| `Dockerfile` and `render.yaml` | Files for public web deployment. |
+| `02_reviewer_demo_source/` | Reviewer-facing React/Vite source, tests, and build scripts. |
+| `03_reproducibility_scripts/` | Scripts for audit, evaluation, package building, and result completion. |
+| `04_figures_methods_generation/` | Figure, table, audit, and supplementary-method generation assets. |
+| `05_model_pipeline_protocols/` | Model and training-protocol materials used to document the risk pipeline. |
 
-## Important API Routes
+## Backend API
+
+The backend is intentionally visible. The most important routes are:
 
 | Route | Purpose |
 |---|---|
 | `/dashboard` | Main browser entry point. |
-| `/api/v9/content` | Loads workbench content. |
-| `/api/v10/profile/generate` | Generates a structured KOM-Profile output from the current case state. |
+| `/api/v9/content` | Loads the workbench content and current release metadata. |
+| `/api/v10/profile/generate` | Generates a structured KOM-Profile output from the current patient state. |
 | `/api/v9/rad/analyze` | Runs the radiology workflow state transition. |
 | `/api/v9/risk/predict` | Returns side-specific and bilateral-coupled risk estimates. |
-| `/api/v10/evidence/units` | Searches and exports Evidence Units. |
-| `/api/v10/evidence/patient-fit` | Retrieves patient-fit evidence for the selected context. |
-| `/api/v9/agent/chat` | Provides specialty-agent responses through local or optional model-assisted pathways. |
+| `/api/v10/evidence/units` | Searches or exports Evidence Units. |
+| `/api/v10/evidence/patient-fit` | Retrieves patient-fit evidence for the selected case and treatment domain. |
+| `/api/v9/agent/chat` | Returns specialty-agent responses through local or optional model-assisted pathways. |
 | `/api/v15/safe/negotiate` | Runs Safe-MDT negotiation and revision tracing. |
-| `/api/v16/profile/save` | Saves the current profile configuration. |
+| `/api/v16/profile/save` | Saves the current patient profile configuration. |
 | `/api/v16/rx/finalize` | Saves the clinician-confirmed final KOM-Rx. |
-| `/api/report` | Exports the clinical report. |
-| `/api/v9/validate` | Runs local validation checks. |
+| `/api/report` | Exports the report as Markdown or HTML. |
+| `/api/v9/validate` | Runs workbench validation checks. |
 
-## Running Locally
+## Running The Local Package
 
 For the full Windows local package:
 
@@ -203,55 +246,61 @@ For the full Windows local package:
 4. If port `8027` is busy, the portable launcher can try `8067`.
 5. Use `Stop_KOM_Workbench.bat` when finished.
 
-For validation:
+Validation:
 
 ```bat
 Run_Validation.bat
 ```
 
-For package integrity:
+Package integrity:
 
 ```bat
 runtime\python\python.exe package_integrity.py
 ```
 
-## Public Web Deployment
+The public web deployment uses the platform `PORT` variable. For public deployments, set:
 
-The dynamic workbench requires a backend service, so GitHub Pages alone is not enough. The package includes Docker and Render deployment files.
+```text
+KOM_PUBLIC_DEMO=1
+```
 
-Recommended deployment:
+In public-demo mode, private API keys should not be persisted through the browser settings page. For controlled private deployments, use server-side environment variables.
 
-1. Push the extracted workbench folder to a repository.
-2. Create a Docker web service on Render, Railway, Fly.io, or a VPS.
-3. Use the included `Dockerfile` or `render.yaml`.
-4. Set `KOM_PUBLIC_DEMO=1` for public deployments.
-5. Use `/api/v9/validate` as the health check path.
-6. Open `/dashboard`.
+## Evidence, Data, And Reproducibility
 
-In public-demo mode, private API keys should not be persisted through the browser settings page. For controlled private deployments, configure server-side environment variables instead.
+KOM uses de-identified demonstration cases and derived research artifacts. Raw restricted clinical datasets are not redistributed unless sharing is explicitly permitted.
 
-## Data and Reproducibility
+The project is designed to provide enough material for inspection even when raw data cannot be shared:
 
-KOM uses de-identified research data, derived analysis files, and local demonstration cases. Raw restricted clinical datasets are not redistributed unless sharing is explicitly permitted.
-
-Where raw data cannot be redistributed, the project provides:
-
-- code and workflow scripts;
-- evidence-unit schema and derived evidence catalogs;
+- application code and workflow scripts;
+- Evidence Unit schema and derived catalogs;
+- graph nodes and graph edges;
 - feature and model documentation;
 - source-data tables for figures;
-- validation outputs;
-- package integrity reports;
+- audit and validation reports;
+- package integrity checks;
 - reviewer-facing demonstration cases;
 - reproducibility notes.
 
-The package also includes scripts for methods, figures, audit reports, model-pipeline protocols, and manuscript-support materials.
+The evidence layer is designed for traceability. A treatment statement should be connected to a domain, an evidence level, a source or Evidence Unit, and a safety or applicability boundary whenever possible.
 
-## Safety and Responsible Use
+## What This Project Is Good For
 
-KOM is a research system for clinician-facing decision-support validation.
+KOM can be useful for:
 
-It should not be used for:
+- reviewing a full knee osteoarthritis decision-support workflow;
+- demonstrating clinician-in-the-loop medical AI design;
+- testing evidence retrieval and Evidence Unit GraphRAG;
+- studying specialty-agent treatment planning;
+- auditing safety-gated clinical recommendation workflows;
+- preparing research demonstrations, manuscripts, supplements, or reviewer materials;
+- adapting the code and skills to related chronic disease decision-support tasks.
+
+It is especially useful when the reader wants to see more than a final answer. KOM shows the intermediate state: patient profile, imaging context, risk estimate, evidence retrieval, specialty reasoning, safety negotiation, final prescription, and validation trace.
+
+## Clinical And Research Boundary
+
+KOM is a research prototype for clinician-facing decision-support validation. It should not be used for:
 
 - direct patient self-diagnosis;
 - autonomous treatment recommendation;
@@ -259,26 +308,15 @@ It should not be used for:
 - automatic surgical decision-making;
 - clinical deployment without prospective validation, governance review, and local regulatory approval.
 
-Every generated recommendation should remain reviewable, editable, and accountable to a human clinician.
-
-## Suggested One-Sentence Description
-
-KOM is an end-to-end knee osteoarthritis clinical decision-support workbench that connects bilateral patient profiling, imaging context, longitudinal risk prediction, Evidence Unit GraphRAG, specialty-agent treatment planning, safety negotiation, and clinician-controlled prescription reporting.
-
-## Suggested Short Abstract
-
-KOM is a research-oriented clinical decision-support platform for knee osteoarthritis management. It structures the full decision pathway from patient intake and imaging-aware assessment to risk prediction, evidence retrieval, multidisciplinary treatment planning, safety audit, and final clinician-reviewed reporting. The system is implemented as a modular local/web workbench with a reusable skill layer for patient assessment, imaging-risk reasoning, treatment-agent routing, literature learning, reviewer demonstration, and controlled update governance. KOM is intended for academic research, prototype evaluation, reproducibility review, and clinician-in-the-loop decision-support studies; it is not intended to replace clinician judgment or operate as an autonomous medical device.
-
-## Citation
-
-If you use KOM materials, cite the corresponding repository release or manuscript when available.
-
-Suggested repository citation:
-
-> KOM Research Team. KOM: Knee Osteoarthritis Manager. 2026.
+Medication, injection, surgery, exercise, nutrition, and psychology recommendations require clinician review. The system is designed to support that review, not replace it.
 
 ## Contact
 
-Jacob Louis  
-Sports Medicine, Knee Osteoarthritis, Digital Health, Clinical AI, Chronic Disease Management  
-GitHub: `jacobliuweizhi`
+For questions, bug reports, feedback, research collaboration, deployment issues, or suggestions about the web demo, code package, or KOM Skills, please contact:
+
+```text
+weizhi_L_sportsmed@163.com
+```
+
+Maintainer: Weizhi L.  
+Research interests: sports medicine, knee osteoarthritis, digital health, clinical AI, chronic disease management.
